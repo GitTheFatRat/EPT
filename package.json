@@ -9,5 +9,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "knip": "^6.37.0"
+  }
 }

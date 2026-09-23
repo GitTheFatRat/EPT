@@ -17,7 +17,7 @@ Visual design (colors, spacing, typography) is being built separately in Figma b
 
 - Users register/login, practice Reading or Listening individually, or take a Full Test combining both.
 - **Practice mode timers:** Reading = 20 minutes, Listening = 15 minutes.
-- **Full Test timers:** Reading = 60 minutes (3 passages), Listening = 40 minutes (4 passages) — run **sequentially**, not simultaneously, each with its own timer.
+- **Full Test timers:** Reading = 60 minutes (3 passages), Listening = 40 minutes (4 passages) — run **sequentially**, not simultaneously, each with its own timer. (Backend models this as a single row in `exam_attempts` with `current_segment`, `reading_expires_at`, and `listening_expires_at` columns).
 - Timers are **server-authoritative**. The client displays a countdown derived from `expiresAt`; it never computes or trusts its own end time independently.
 - Question content is flexible (JSONB) to support many IELTS question types — see `02_DATABASE_SCHEMA.md` for exact shapes. Never invent a new shape ad hoc.
 - Auto-scoring on submit, with **immediate detailed review**: after submitting, the user sees every question with their answer, the correct answer, correct/incorrect flag, and explanation — right away, not on a separate later visit. See "Screen 2" below.

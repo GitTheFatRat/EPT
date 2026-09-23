@@ -9,8 +9,10 @@
 ```
 users ──< exam_attempts >── exams ──< passages ──< questions
   │                                                    │
-  └──< exam_results >─────────────────────────────────┘
-              │
+  ├──< exam_results >─────────────────────────────────┘
+  │           │
+  ├──< refresh_tokens
+  │
   exam_attempts ──< attempt_answers_draft >── questions
 ```
 
@@ -212,7 +214,10 @@ One row per exam-taking session.
 | mode | enum `attempt_mode` | `'practice_reading'` \| `'practice_listening'` \| `'full_test'` |
 | status | enum `attempt_status` | `'in_progress'` \| `'submitted'` \| `'expired'` \| `'abandoned'` |
 | started_at | timestamptz | default `now()` |
-| expires_at | timestamptz | **not null** — computed server-side at creation, see duration table below |
+| expires_at | timestamptz | **not null** — computed server-side at creation. Represents the CURRENT segment's expiry |
+| current_segment | varchar(20) | nullable — `'reading'` \| `'listening'` (used for full_test) |
+| reading_expires_at | timestamptz | nullable — expiry for reading segment in full_test |
+| listening_expires_at | timestamptz | nullable — expiry for listening segment in full_test |
 | submitted_at | timestamptz | nullable |
 | time_spent_seconds | int | nullable, computed on submit |
 | created_at | timestamptz | |
@@ -231,7 +236,7 @@ create type attempt_status as enum ('in_progress', 'submitted', 'expired', 'aban
 | `full_test` | reading segment | 60 minutes |
 | `full_test` | listening segment | 40 minutes |
 
-Full Test is **sequential**: reading and listening each get their own `expires_at` window; do not sum or share time budgets. Model this as either (a) two `exam_attempts` rows linked by a `parent_attempt_id` / `session_group_id`, or (b) one `exam_attempts` row with a `current_segment` column and two stored expiry timestamps (`reading_expires_at`, `listening_expires_at`). **Pick one approach and document it here before implementing** — do not leave this ambiguous in code.
+Full Test is **sequential**: reading and listening each get their own time windows; do not sum or share time budgets. **Backend modeling choice**: This is modeled as a single `exam_attempts` row with extra columns (`current_segment`, `reading_expires_at`, `listening_expires_at`). The `expires_at` column always holds the expiry of the *current* segment being played to simplify queries.
 
 ---
 
@@ -277,6 +282,21 @@ Reading and Listening use different raw-score-to-band tables (per official Cambr
 
 ---
 
+## 8. `refresh_tokens`
+
+Stores hashed refresh tokens for revocation on logout. The backend hashes each issued refresh token (SHA-256) before persisting — the raw JWT is never stored.
+
+| Column | Type | Notes |
+|---|---|---|
+| id | uuid, PK | `gen_random_uuid()` |
+| user_id | uuid | FK → `users.id`, `on delete cascade` |
+| token_hash | text | not null, unique — SHA-256 hex digest of the raw refresh JWT |
+| expires_at | timestamptz | not null — mirrors the JWT `exp` claim for DB-level cleanup |
+| revoked_at | timestamptz | nullable — set on logout; non-null means token is invalidated |
+| created_at | timestamptz | default `now()` |
+
+---
+
 ## Indexes
 
 ```sql
@@ -284,6 +304,7 @@ create index idx_passages_exam on passages(exam_id, skill);
 create index idx_questions_passage on questions(passage_id);
 create index idx_attempts_user on exam_attempts(user_id, status);
 create index idx_results_user on exam_results(user_id, created_at desc);
+create index idx_refresh_tokens_user on refresh_tokens(user_id);
 ```
 
 ## Row-Level Security (Supabase)
