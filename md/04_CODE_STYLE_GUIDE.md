@@ -13,7 +13,7 @@ Zero fluff, zero over-engineering, production-ready code only.
 
 ---
 
-## Backend (Node.js / Express / TypeScript)
+## Backend (Node.js / Express / JavaScript — no TypeScript)
 
 ### Layering — enforce strictly
 ```
@@ -27,16 +27,20 @@ A controller must never talk to the database directly; it always goes through a 
 
 ### Async & Error Handling
 - Every route handler is `async` and wrapped so thrown errors reach a central `errorHandler` middleware — do not `try/catch` + manually format errors in every controller individually. Use a small `asyncHandler` wrapper utility instead.
-- Errors thrown from services should be typed/classed (e.g. `class AppError extends Error { statusCode: number; code: string }`) so the error handler can map them to the response shape in `API_CONTRACT.md` without guessing.
+- Errors thrown from services should use a small custom error class (e.g. `class AppError extends Error { constructor(statusCode, code, message) { ... } }`) so the error handler can map them to the response shape in `API_CONTRACT.md` without guessing.
+- Use JSDoc comments (`/** @param {string} attemptId */`) on exported service functions to document expected argument shapes — this is documentation only, not enforced at compile time, but keeps intent clear since there is no compiler to catch mismatches.
 
 ### Example — good service function
-```typescript
-// services/attempt.service.ts
-export async function submitAttempt(
-  attemptId: string,
-  userId: string,
-  answers: SubmitAnswerDTO[]
-): Promise<ExamResultDTO> {
+```javascript
+// services/attempt.service.js
+
+/**
+ * @param {string} attemptId
+ * @param {string} userId
+ * @param {Array<{questionId: string, userAnswer: any}>} answers
+ * @returns {Promise<object>} ExamResult shape per API_CONTRACT.md
+ */
+export async function submitAttempt(attemptId, userId, answers) {
   const attempt = await getAttemptOrThrow(attemptId, userId);
   const questions = await getQuestionsForAttempt(attempt);
   const mergedAnswers = mergeWithDraftAnswers(attemptId, answers);
@@ -55,7 +59,7 @@ export async function submitAttempt(
 ```
 
 ### Validation
-- Use a schema validation library (`zod` recommended) for every request body/query — reject early with `400` before touching the database. Validators live in `validators/`, imported into route definitions, not scattered inline in controllers.
+- Use a schema validation library (`zod` recommended — it works fine in plain JavaScript without TypeScript, since validation happens at runtime) for every request body/query — reject early with `400` before touching the database. Validators live in `validators/`, imported into route definitions, not scattered inline in controllers.
 
 ### Security
 - Never return `password_hash` in any API response, ever — exclude it at the query level or the DTO-mapping level, not just by "remembering not to."
@@ -63,34 +67,27 @@ export async function submitAttempt(
 
 ---
 
-## Frontend (React / Vite / TypeScript / Redux Toolkit)
+## Frontend (React / Vite / JavaScript — no TypeScript / Redux Toolkit)
 
 ### Component Structure Order
-1. Imports (React → third-party libraries → local components → types → utilities)
-2. Type/interface definitions (exported alongside the component)
-3. Component function
-4. Hooks & local state
-5. Handlers
-6. JSX return
+1. Imports (React → third-party libraries → local components → utilities)
+2. Component function
+3. Hooks & local state
+4. Handlers
+5. JSX return
 
-```tsx
+```jsx
 // GOOD
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { QuestionRenderer } from './QuestionRenderer';
-import type { Question } from '@/types/exam';
 import { formatTime } from '@/lib/formatTime';
 
-interface AttemptPanelProps {
-  questions: Question[];
-  attemptId: string;
-}
-
-export function AttemptPanel({ questions, attemptId }: AttemptPanelProps) {
+export function AttemptPanel({ questions, attemptId }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const dispatch = useDispatch();
 
-  const handleAnswerChange = (questionId: string, answer: unknown) => {
+  const handleAnswerChange = (questionId, answer) => {
     dispatch(autosaveAnswer({ attemptId, questionId, answer }));
   };
 
@@ -109,15 +106,9 @@ export function AttemptPanel({ questions, attemptId }: AttemptPanelProps) {
 - Local `useState` is fine for pure UI state (modal open/closed, active tab) — do not put this in Redux.
 - Never mix a local `setInterval` timer with Redux state updates every second (causes re-render storms). Compute remaining time from `expiresAt` on each render tick using `requestAnimationFrame` or a single `setInterval` at 1s that only updates a local display string, not global state.
 
-### TypeScript
-- No `any`. If a shape is genuinely dynamic (e.g. JSONB `content`), model it as a discriminated union keyed by `type`, matching the shapes in `DATABASE_SCHEMA.md` exactly:
-```typescript
-type QuestionContent =
-  | { type: 'multiple_choice'; question: string; options: { key: string; text: string }[] }
-  | { type: 'true_false_not_given'; statement: string }
-  | { type: 'sentence_completion'; textTemplate: string; wordLimit: string; blanks: { blankId: number }[] }
-  // ...etc, mirrored from DATABASE_SCHEMA.md (answer fields omitted client-side pre-submission)
-```
+### No TypeScript — shape discipline still applies
+- No compiler is checking shapes, so discipline here is manual — this makes it more important, not less, to follow `DATABASE_SCHEMA.md`'s JSONB shapes exactly for every `question.content` object, and to use JSDoc `@param`/`@returns` comments on non-trivial functions so the shape is documented even without a type checker.
+- Use PropTypes (`prop-types` package) on any component that isn't trivially simple, especially `QuestionRenderer` and its per-type sub-components, so a wrong shape fails loudly in the console during development instead of silently rendering `undefined`.
 
 ### QuestionRenderer Pattern
 `QuestionRenderer` must dispatch to one sub-component per `question_type` (Strategy Pattern) — do not build one giant component with a long `if/else` chain handling every type's markup inline. One file per type under `features/attempt/components/questionTypes/`.
@@ -128,10 +119,10 @@ type QuestionContent =
 
 | Item | Convention |
 |---|---|
-| React components | PascalCase (`ExamTimer.tsx`) |
-| Hooks | camelCase, `use` prefix (`useAttemptTimer.ts`) |
-| Redux slices | camelCase, `*Slice.ts` (`attemptSlice.ts`) |
-| Backend files | camelCase, role suffix (`attempt.service.ts`, `attempt.controller.ts`, `attempt.routes.ts`) |
+| React components | PascalCase (`ExamTimer.jsx`) |
+| Hooks | camelCase, `use` prefix (`useAttemptTimer.js`) |
+| Redux slices | camelCase, `*Slice.js` (`attemptSlice.js`) |
+| Backend files | camelCase, role suffix (`attempt.service.js`, `attempt.controller.js`, `attempt.routes.js`) |
 | DB columns | snake_case (matches Postgres convention in `DATABASE_SCHEMA.md`) |
 | API JSON fields | camelCase (backend maps snake_case DB → camelCase DTO at the service/controller boundary) |
 

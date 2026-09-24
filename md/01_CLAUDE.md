@@ -17,7 +17,7 @@ Visual design (colors, spacing, typography) is being built separately in Figma b
 
 - Users register/login, practice Reading or Listening individually, or take a Full Test combining both.
 - **Practice mode timers:** Reading = 20 minutes, Listening = 15 minutes.
-- **Full Test timers:** Reading = 60 minutes (3 passages), Listening = 40 minutes (4 passages) — run **sequentially**, not simultaneously, each with its own timer. (Backend models this as a single row in `exam_attempts` with `current_segment`, `reading_expires_at`, and `listening_expires_at` columns).
+- **Full Test timers:** Reading = 60 minutes (3 passages), Listening = 40 minutes (4 passages) — run **sequentially**, not simultaneously, each with its own timer.
 - Timers are **server-authoritative**. The client displays a countdown derived from `expiresAt`; it never computes or trusts its own end time independently.
 - Question content is flexible (JSONB) to support many IELTS question types — see `02_DATABASE_SCHEMA.md` for exact shapes. Never invent a new shape ad hoc.
 - Auto-scoring on submit, with **immediate detailed review**: after submitting, the user sees every question with their answer, the correct answer, correct/incorrect flag, and explanation — right away, not on a separate later visit. See "Screen 2" below.
@@ -28,8 +28,8 @@ Visual design (colors, spacing, typography) is being built separately in Figma b
 
 | Layer | Choice |
 |---|---|
-| Frontend | React (Vite), TypeScript strict, Redux Toolkit, React Router, Axios, Tailwind CSS |
-| Backend | Node.js, Express, bcrypt, jsonwebtoken |
+| Frontend | React (Vite), JavaScript (JSX, no TypeScript), Redux Toolkit, React Router, Axios, Tailwind CSS |
+| Backend | Node.js, Express, JavaScript (no TypeScript), bcrypt, jsonwebtoken |
 | Database | Supabase (PostgreSQL) |
 | File storage | Supabase Storage (listening audio) |
 
@@ -45,19 +45,19 @@ ept/
 │   └── src/
 │       ├── config/            # env loader, constants (durations, JWT settings) — single source, no scattered process.env
 │       ├── db/                # Supabase client init, raw query helpers — no business logic
-│       ├── middlewares/       # auth.middleware.ts, roleGuard.middleware.ts, errorHandler.ts
-│       │                      # future: rateLimiter.middleware.ts, auditLog.middleware.ts plug in here
+│       ├── middlewares/       # auth.middleware.js, roleGuard.middleware.js, errorHandler.js
+│       │                      # future: rateLimiter.middleware.js, auditLog.middleware.js plug in here
 │       ├── security/          # NEW: password hashing, token signing/verification, future 2FA/OAuth logic
 │       │                      # isolates all crypto/auth-algorithm logic so it can be upgraded without touching services/
 │       ├── validators/        # request schema validation (zod), one file per resource
 │       ├── services/          # ALL business logic: scoring, band conversion, timer validation, attempt lifecycle
 │       ├── controllers/       # thin — parse request, call service, format response
 │       ├── routes/            # Express routers, one file per resource
-│       └── server.ts          # app entry
+│       └── server.js          # app entry
 │
 ├── frontend/
 │   └── src/
-│       ├── app/                # store.ts (Redux), router.tsx
+│       ├── app/                # store.js (Redux), router.jsx
 │       ├── features/
 │       │   ├── auth/           # login, register, session slice
 │       │   ├── exam/           # exam list/detail
@@ -67,11 +67,12 @@ ept/
 │       │   ├── result/         # result + review screen — see "Screen 2" state contract below
 │       │   └── profile/
 │       ├── components/ui/      # dumb shared components, Tailwind only, no business logic
-│       ├── lib/                # axiosClient.ts, bandConverter.ts, timeFormat.ts
-│       └── types/               # TS types mirroring 02_DATABASE_SCHEMA.md and 03_API_CONTRACT.md
+│       └── lib/                # axiosClient.js, bandConverter.js, timeFormat.js
 │
 └── docs/                        # this folder
 ```
+
+**Note:** this project uses plain JavaScript (JSX for React), not TypeScript. There is no `types/` folder and no compile-time type checking. Shape correctness for dynamic data (especially question `content` JSONB) is enforced through discipline, JSDoc comments, and runtime validation (zod on the backend, PropTypes on complex frontend components) — see `04_CODE_STYLE_GUIDE.md`.
 
 **Rule:** all password hashing, token generation/verification, and any future auth-strengthening logic (2FA, OAuth, session revocation) lives in `backend/src/security/`. Services and controllers call into it but never implement crypto/token logic inline. This is the one place to touch when auth requirements change later.
 
@@ -81,23 +82,23 @@ ept/
 
 No layout is specified here (Figma will define that). What **must** exist regardless of layout:
 
-### Required state (Redux `attemptSlice`)
-```typescript
-interface AttemptState {
-  attemptId: string;
-  mode: 'practice_reading' | 'practice_listening' | 'full_test';
-  currentSegment: 'reading' | 'listening';   // relevant only for full_test
-  expiresAt: string;                          // ISO timestamp from server — never computed locally
-  passages: PassageWithQuestions[];
-  answers: Record<string /* questionId */, unknown /* shape per question type */>;
-  answerStatus: Record<string /* questionId */, 'unanswered' | 'answered' | 'flagged'>;
-  activeQuestionId: string | null;
+### Required state shape (Redux `attemptSlice`, plain JS — documented here as a shape reference, not a type to compile)
+```
+AttemptState = {
+  attemptId: string,
+  mode: 'practice_reading' | 'practice_listening' | 'full_test',
+  currentSegment: 'reading' | 'listening',   // relevant only for full_test
+  expiresAt: string,                          // ISO timestamp from server — never computed locally
+  passages: PassageWithQuestions[],
+  answers: { [questionId: string]: any /* shape per question type */ },
+  answerStatus: { [questionId: string]: 'unanswered' | 'answered' | 'flagged' },
+  activeQuestionId: string | null,
   audioPlaybackState: {
-    hasPlayed: boolean;          // full_test / real-exam behavior: audio plays once only
-    allowReplay: boolean;        // true only in standalone practice mode, false in full_test
-    currentTimeSeconds: number;
-  };
-  submissionState: 'idle' | 'submitting' | 'submitted' | 'expired';
+    hasPlayed: boolean,          // full_test / real-exam behavior: audio plays once only
+    allowReplay: boolean,        // true only in standalone practice mode, false in full_test
+    currentTimeSeconds: number,
+  },
+  submissionState: 'idle' | 'submitting' | 'submitted' | 'expired',
 }
 ```
 
@@ -115,24 +116,24 @@ interface AttemptState {
 
 Confirmed behavior: **immediate detailed review after submission** — not deferred to a separate later visit.
 
-### Required state (Redux `resultSlice` or local query state)
-```typescript
-interface ResultState {
-  resultId: string;
-  skill: 'reading' | 'listening' | 'overall';
-  correctCount: number;
-  wrongCount: number;
-  skippedCount: number;
-  totalQuestions: number;
-  bandScore: number | null;
-  detailAnswers: {
-    questionId: string;
-    questionNumber: number;
-    userAnswer: unknown;
-    correctAnswer: unknown;
-    isCorrect: boolean;
-    explanation: string;
-  }[];
+### Required state shape (Redux `resultSlice` or local query state, plain JS)
+```
+ResultState = {
+  resultId: string,
+  skill: 'reading' | 'listening' | 'overall',
+  correctCount: number,
+  wrongCount: number,
+  skippedCount: number,
+  totalQuestions: number,
+  bandScore: number | null,
+  detailAnswers: Array<{
+    questionId: string,
+    questionNumber: number,
+    userAnswer: any,
+    correctAnswer: any,
+    isCorrect: boolean,
+    explanation: string,
+  }>,
 }
 ```
 
