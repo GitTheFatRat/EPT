@@ -7,7 +7,7 @@
 ## Entity Overview
 
 ```
-users ──< exam_attempts >── exams ──< passages ──< questions
+users < exam_attempts > exams < exam_passages > passages < questions
   │                                                    │
   ├──< exam_results >─────────────────────────────────┘
   │           │
@@ -57,15 +57,13 @@ alter table exams add constraint code_is_uppercase check (code = upper(code));
 
 ## 3. `passages`
 
-One row per passage (Reading) or per section/audio (Listening). A Reading exam has exactly 3 rows with `skill='reading'`; a Listening exam has exactly 4 rows with `skill='listening'` — this is enforced at the application layer during exam creation, not a hard DB constraint (to allow draft/incomplete exams during authoring).
+One row per passage (Reading) or per section/audio (Listening).
 
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid, PK | |
-| exam_id | uuid | FK → `exams.id`, `on delete cascade` |
 | skill | enum `skill_type` | `'reading'` \| `'listening'` |
-| order_index | int | 1–3 for reading, 1–4 for listening |
-| title | varchar(255) | e.g. `"Passage 1: The History of Tea"` |
+| title | varchar(255) | e.g. "Passage 1: The History of Tea" |
 | passage_text | text | reading only — full passage content (HTML or Markdown, FE decides render) |
 | audio_url | text | listening only — Supabase Storage public/signed URL |
 | audio_duration_seconds | int | listening only |
@@ -73,12 +71,29 @@ One row per passage (Reading) or per section/audio (Listening). A Reading exam h
 
 ```sql
 create type skill_type as enum ('reading', 'listening');
-alter table passages add constraint unique_order unique(exam_id, skill, order_index);
 ```
 
 ---
 
-## 4. `questions`
+## 4. `exam_passages` (Junction Table)
+
+Handles the many-to-many relationship between `exams` and `passages`, avoiding data duplication when a single passage is used in both individual practice exams and a combined Mock Test. A Reading exam typically links 3 passages; a Listening exam typically links 4 passages (enforced at the application layer).
+
+| Column | Type | Notes |
+|---|---|---|
+| exam_id | uuid, PK | FK -> `exams.id`, `on delete cascade` |
+| passage_id | uuid, PK | FK -> `passages.id`, `on delete cascade` |
+| order_index | int | 1—3 for reading, 1—4 for listening. Must be unique per exam. |
+
+```sql
+alter table exam_passages add constraint unique_exam_order unique(exam_id, order_index);
+alter table exam_passages enable row level security;
+create policy "Allow public read access on exam_passages" on exam_passages for select using (true);
+```
+
+---
+
+## 5. `questions`
 
 | Column | Type | Notes |
 |---|---|---|
@@ -202,7 +217,7 @@ create type question_type as enum (
 
 ---
 
-## 5. `exam_attempts`
+## 6. `exam_attempts`
 
 One row per exam-taking session.
 
@@ -240,7 +255,7 @@ Full Test is **sequential**: reading and listening each get their own time windo
 
 ---
 
-## 6. `attempt_answers_draft`
+## 7. `attempt_answers_draft`
 
 Autosave table — overwritten continuously during an attempt.
 
@@ -257,7 +272,7 @@ alter table attempt_answers_draft add constraint pk_draft primary key (attempt_i
 
 ---
 
-## 7. `exam_results`
+## 8. `exam_results`
 
 Final, immutable snapshot after scoring.
 
@@ -282,7 +297,7 @@ Reading and Listening use different raw-score-to-band tables (per official Cambr
 
 ---
 
-## 8. `refresh_tokens`
+## 9. `refresh_tokens`
 
 Stores hashed refresh tokens for revocation on logout. The backend hashes each issued refresh token (SHA-256) before persisting — the raw JWT is never stored.
 
@@ -300,7 +315,8 @@ Stores hashed refresh tokens for revocation on logout. The backend hashes each i
 ## Indexes
 
 ```sql
-create index idx_passages_exam on passages(exam_id, skill);
+create index idx_exam_passages_exam on exam_passages(exam_id);
+create index idx_exam_passages_passage on exam_passages(passage_id);
 create index idx_questions_passage on questions(passage_id);
 create index idx_attempts_user on exam_attempts(user_id, status);
 create index idx_results_user on exam_results(user_id, created_at desc);

@@ -45,13 +45,18 @@ export const getExamByCode = async (code) => {
             throw new AppError(404, 'NOT_FOUND', 'Exam not found');
         throw new AppError(500, 'DATABASE_ERROR', examError?.message || 'Error fetching exam');
     }
-    const { data: passages, error: passagesError } = await supabase
-        .from('passages')
-        .select('*')
+    const { data: examPassages, error: passagesError } = await supabase
+        .from('exam_passages')
+        .select('order_index, passages(*)')
         .eq('exam_id', exam.id)
         .order('order_index', { ascending: true });
     if (passagesError)
         throw new AppError(500, 'DATABASE_ERROR', passagesError.message);
+    const passages = examPassages.map(ep => ({
+        ...ep.passages,
+        exam_id: exam.id,
+        order_index: ep.order_index
+    }));
     const passageIds = passages.map(p => p.id);
     let questions = [];
     if (passageIds.length > 0) {
@@ -211,25 +216,34 @@ export const addPassage = async (examId, dto, audioFile) => {
     const { data, error } = await supabase
         .from('passages')
         .insert({
-        exam_id: examId,
         skill: dto.skill,
         title: dto.title,
         passage_text: dto.passageText,
-        audio_url: audioUrl,
-        order_index: dto.orderIndex
+        audio_url: audioUrl
     })
         .select()
         .single();
     if (error)
         throw new AppError(500, 'DATABASE_ERROR', error.message);
+
+    const { error: junctionError } = await supabase
+        .from('exam_passages')
+        .insert({
+        exam_id: examId,
+        passage_id: data.id,
+        order_index: dto.orderIndex
+    });
+    if (junctionError)
+        throw new AppError(500, 'DATABASE_ERROR', junctionError.message);
+
     return {
         id: data.id,
-        examId: data.exam_id,
+        examId: examId,
         skill: data.skill,
         title: data.title,
         passageText: data.passage_text,
         audioUrl: data.audio_url,
-        orderIndex: data.order_index,
+        orderIndex: dto.orderIndex,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
     };

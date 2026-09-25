@@ -40,13 +40,15 @@ export const startAttempt = async (dto, userId) => {
     if (attemptError)
         throw new AppError(500, 'DB_ERROR', attemptError.message);
     let skillFilter = dto.mode === 'practice_listening' ? ['listening'] : ['reading'];
-    const { data: passages, error: passagesError } = await supabase
-        .from('passages')
-        .select('*')
+    const { data: examPassages, error: passagesError } = await supabase
+        .from('exam_passages')
+        .select('order_index, passages!inner(*)')
         .eq('exam_id', dto.examId)
-        .in('skill', skillFilter);
-    if (passagesError)
-        throw new AppError(500, 'DB_ERROR', passagesError.message);
+        .in('passages.skill', skillFilter)
+        .order('order_index', { ascending: true });
+    
+    if (passagesError) throw new AppError(500, 'DB_ERROR', passagesError.message);
+    const passages = examPassages.map(ep => ({ ...ep.passages, exam_id: dto.examId, order_index: ep.order_index }));
     const passageIds = passages.map((p) => p.id);
     let questions = [];
     if (passageIds.length > 0) {
@@ -137,13 +139,15 @@ export const advanceSegment = async (attemptId, userId) => {
         .single();
     if (updateError)
         throw new AppError(500, 'DB_ERROR', updateError.message);
-    const { data: passages, error: passagesError } = await supabase
-        .from('passages')
-        .select('*')
+    const { data: examPassages, error: passagesError } = await supabase
+        .from('exam_passages')
+        .select('order_index, passages!inner(*)')
         .eq('exam_id', attempt.exam_id)
-        .eq('skill', 'listening');
-    if (passagesError)
-        throw new AppError(500, 'DB_ERROR', passagesError.message);
+        .eq('passages.skill', 'listening')
+        .order('order_index', { ascending: true });
+    
+    if (passagesError) throw new AppError(500, 'DB_ERROR', passagesError.message);
+    const passages = examPassages.map(ep => ({ ...ep.passages, exam_id: attempt.exam_id, order_index: ep.order_index }));
     const passageIds = passages.map((p) => p.id);
     let questions = [];
     if (passageIds.length > 0) {
@@ -263,9 +267,9 @@ export const submitAttempt = async (attemptId, dto, userId) => {
         skillFilter = ['listening'];
     else if (attempt.mode === 'full_test')
         skillFilter = ['reading', 'listening'];
-    const { data: passages, error: passagesError } = await supabase.from('passages').select('id, skill').eq('exam_id', attempt.exam_id).in('skill', skillFilter);
-    if (passagesError)
-        throw new AppError(500, 'DB_ERROR', passagesError.message);
+    const { data: examPassages, error: passagesError } = await supabase.from('exam_passages').select('order_index, passages!inner(id, skill)').eq('exam_id', attempt.exam_id).in('passages.skill', skillFilter);
+    if (passagesError) throw new AppError(500, 'DB_ERROR', passagesError.message);
+    const passages = examPassages.map(ep => ({ ...ep.passages, exam_id: attempt.exam_id, order_index: ep.order_index }));
     const passageIds = passages.map((p) => p.id);
     const passageSkillMap = new Map();
     for (const p of passages)
@@ -413,13 +417,15 @@ export const getAttemptById = async (attemptId, userId) => {
             skillFilter = ['reading', 'listening'];
         }
     }
-    const { data: passages, error: passagesError } = await supabase
-        .from('passages')
-        .select('*')
+    const { data: examPassages, error: passagesError } = await supabase
+        .from('exam_passages')
+        .select('order_index, passages!inner(*)')
         .eq('exam_id', attempt.exam_id)
-        .in('skill', skillFilter);
-    if (passagesError)
-        throw new AppError(500, 'DB_ERROR', passagesError.message);
+        .in('passages.skill', skillFilter)
+        .order('order_index', { ascending: true });
+
+    if (passagesError) throw new AppError(500, 'DB_ERROR', passagesError.message);
+    const passages = examPassages.map(ep => ({ ...ep.passages, exam_id: attempt.exam_id, order_index: ep.order_index }));
     const passageIds = passages.map((p) => p.id);
     let questions = [];
     if (passageIds.length > 0) {
