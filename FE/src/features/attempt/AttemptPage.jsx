@@ -252,9 +252,9 @@ export default function AttemptPage() {
                   {(() => {
                     const count = getSubQuestionCount(activeQuestion);
                     if (count > 1) {
-                      return `Questions ${activeQuestion.question_number} - ${activeQuestion.question_number + count - 1}`;
+                      return `Questions ${activeQuestion.questionNumber} - ${activeQuestion.questionNumber + count - 1}`;
                     }
-                    return `Question ${activeQuestion.question_number}`;
+                    return `Question ${activeQuestion.questionNumber}`;
                   })()}
                 </span>
                 <button 
@@ -294,7 +294,7 @@ export default function AttemptPage() {
               const count = getSubQuestionCount(q);
               const buttons = [];
               for (let i = 0; i < count; i++) {
-                const subNumber = q.question_number + i;
+                const subNumber = q.questionNumber + i;
                 const status = answerStatus[q.id];
                 let btnClass = "w-10 h-10 shrink-0 rounded-md border flex items-center justify-center text-sm font-medium transition-colors ";
                 
