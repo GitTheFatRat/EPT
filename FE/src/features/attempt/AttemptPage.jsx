@@ -28,7 +28,8 @@ export default function AttemptPage() {
     submissionState,
     resultId,
     audioPlaybackState,
-    loadingData
+    loadingData,
+    mode
   } = useSelector(state => state.attempt);
   
   const [remainingTime, setRemainingTime] = useState(0);
@@ -142,20 +143,20 @@ export default function AttemptPage() {
   // Audio handling
   const audioRef = useRef(null);
 
-  if (loadingData) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50">Loading attempt...</div>;
-  }
+  const getSubQuestionCount = (q) => {
+    if (q.type === 'sentence_completion' || q.type === 'summary_completion' || q.type === 'note_completion' || q.type === 'table_completion' || q.type === 'form_completion') {
+        return q.content?.blanks?.length || 1;
+    }
+    if (q.type === 'diagram_label_completion') {
+        return q.content?.labels?.length || 1;
+    }
+    if (q.type === 'matching_headings' || q.type === 'matching_information' || q.type === 'matching_features') {
+        return q.content?.items?.length || 1;
+    }
+    return 1;
+  };
 
-  if (submissionState === 'advancing') {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
-        <h2 className="text-2xl font-bold mb-2">Chuyển sang phần Listening...</h2>
-        <p className="text-gray-400">Vui lòng chờ trong giây lát.</p>
-      </div>
-    );
-  }
-
-    const passages = React.useMemo(() => {
+  const passages = React.useMemo(() => {
     if (mode === 'full_test') return rawPassages;
     let currentLocalNumber = 1;
     return rawPassages.map(p => ({
@@ -168,6 +169,19 @@ export default function AttemptPage() {
       })
     }));
   }, [rawPassages, mode]);
+
+  if (loadingData) {
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50">Loading attempt...</div>;
+  }
+
+  if (submissionState === 'advancing') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+        <h2 className="text-2xl font-bold mb-2">Chuyển sang phần Listening...</h2>
+        <p className="text-gray-400">Vui lòng chờ trong giây lát.</p>
+      </div>
+    );
+  }
 
   const isLowTime = remainingTime < 300; // < 5 mins
   
@@ -194,19 +208,6 @@ export default function AttemptPage() {
       audioRef.current.play();
       dispatch(setAudioHasPlayed({ passageId: activePassage.id, hasPlayed: true }));
     }
-  };
-
-  const getSubQuestionCount = (q) => {
-    if (q.type === 'sentence_completion' || q.type === 'summary_completion' || q.type === 'note_completion' || q.type === 'table_completion' || q.type === 'form_completion') {
-        return q.content?.blanks?.length || 1;
-    }
-    if (q.type === 'diagram_label_completion') {
-        return q.content?.labels?.length || 1;
-    }
-    if (q.type === 'matching_headings' || q.type === 'matching_information' || q.type === 'matching_features') {
-        return q.content?.items?.length || 1;
-    }
-    return 1;
   };
 
   return (
