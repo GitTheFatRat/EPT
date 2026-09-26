@@ -250,6 +250,7 @@ export default function AttemptPage() {
               <div className="flex justify-between items-start mb-6">
                 <span className="bg-gray-100 text-gray-800 text-sm font-bold px-3 py-1 rounded-md">
                   {(() => {
+                    if (!activeQuestion.questionNumber) return 'Question -';
                     const count = getSubQuestionCount(activeQuestion);
                     if (count > 1) {
                       return `Questions ${activeQuestion.questionNumber} - ${activeQuestion.questionNumber + count - 1}`;
@@ -294,7 +295,7 @@ export default function AttemptPage() {
               const count = getSubQuestionCount(q);
               const buttons = [];
               for (let i = 0; i < count; i++) {
-                const subNumber = q.questionNumber + i;
+                const subNumber = q.questionNumber ? (q.questionNumber + i) : '-';
                 const status = answerStatus[q.id];
                 let btnClass = "w-10 h-10 shrink-0 rounded-md border flex items-center justify-center text-sm font-medium transition-colors ";
                 
