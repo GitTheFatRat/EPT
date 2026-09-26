@@ -43,9 +43,9 @@ export default function RegisterPage() {
       });
 
       dispatch(setAuth({
-        accessToken: loginRes.data.accessToken,
-        refreshToken: loginRes.data.refreshToken,
-        user: loginRes.data.user
+        accessToken: loginRes.data.data.accessToken,
+        refreshToken: loginRes.data.data.refreshToken,
+        user: loginRes.data.data.user
       }));
 
       setStep(2);
@@ -70,7 +70,7 @@ export default function RegisterPage() {
       });
       navigate('/exams');
     } catch (err) {
-      setError(err.response?.data?.message || 'Update failed. Please try again.');
+      setError(err.response?.data?.error?.message || 'Update failed. Please try again.');
       setLoading(false);
     }
   };

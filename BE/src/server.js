@@ -19,6 +19,6 @@ app.use('/api/attempts', attemptRoutes);
 app.use('/api/results', resultRoutes);
 app.use(errorHandler);
 app.listen(env.PORT, () => {
-    console.log(`Server running on port ${env.PORT}`);
+    console.log(`Server running on port ${env.PORT}`); // touched
 });
 

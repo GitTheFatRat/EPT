@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState(null);
   const [stats, setStats] = useState(null);
   const [results, setResults] = useState([]);
+  const [totalResults, setTotalResults] = useState(0);
   const [exams, setExams] = useState([]);
 
   useEffect(() => {
@@ -37,7 +38,10 @@ export default function DashboardPage() {
 
         if (meRes.status === 'fulfilled') setUser(meRes.value.data.data);
         if (statsRes.status === 'fulfilled') setStats(statsRes.value.data.data);
-        if (resultsRes.status === 'fulfilled') setResults(resultsRes.value.data.data.items);
+        if (resultsRes.status === 'fulfilled') {
+            setResults(resultsRes.value.data.data.items);
+            setTotalResults(resultsRes.value.data.data.total);
+        }
         if (examsRes.status === 'fulfilled') setExams(examsRes.value.data.data.items);
 
       } catch (err) {
@@ -81,17 +85,17 @@ export default function DashboardPage() {
     }
 
   // Tests completed & avg score
-  const testsCompleted = results?.length || 0;
+  const testsCompleted = totalResults || 0;
   let avgScore = '-- / --';
-  if (testsCompleted > 0) {
+  if (results && results.length > 0) {
     let sumCorrect = 0;
     let sumTotal = 0;
     results.forEach(r => {
        sumCorrect += r.correctCount || 0;
        sumTotal += r.totalQuestions || 40;
     });
-    const avgCorrect = (sumCorrect / testsCompleted).toFixed(1);
-    const avgTtl = Math.round(sumTotal / testsCompleted);
+    const avgCorrect = (sumCorrect / results.length).toFixed(1);
+    const avgTtl = Math.round(sumTotal / results.length);
     avgScore = `${avgCorrect} / ${avgTtl}`;
   }
 

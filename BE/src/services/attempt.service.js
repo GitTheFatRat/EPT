@@ -290,24 +290,35 @@ export const submitAttempt = async (attemptId, dto, userId) => {
         const userAnswer = savedAnswers.get(q.id);
         const skill = passageSkillMap.get(q.passage_id);
         const score = scoreQuestion(q, userAnswer);
+        
         let points = 0;
+        let isSkipped = false;
+        
         if (userAnswer === undefined || userAnswer === null || userAnswer === '') {
-            if (skill === 'reading')
-                readingSkipped++;
-            else
-                listeningSkipped++;
+            isSkipped = true;
+        } else if (typeof userAnswer === 'object') {
+            const values = Object.values(userAnswer);
+            if (values.length === 0 || values.every(v => !v || (typeof v === 'string' && !v.trim()))) {
+                isSkipped = true;
+            }
+        }
+
+        if (isSkipped) {
+            if (skill === 'reading') readingSkipped++;
+            else listeningSkipped++;
         }
         else {
-            if (score.isPartiallyCorrect && score.details && typeof score.details.correctItems === 'number')
+            if (score.details && typeof score.details.correctItems === 'number')
                 points = score.details.correctItems;
-            else if (score.isPartiallyCorrect && score.details && typeof score.details.correctBlanks === 'number')
+            else if (score.details && typeof score.details.correctBlanks === 'number')
                 points = score.details.correctBlanks;
-            else if (score.isPartiallyCorrect && score.details && typeof score.details.correctLabels === 'number')
+            else if (score.details && typeof score.details.correctLabels === 'number')
                 points = score.details.correctLabels;
-            else if (score.isPartiallyCorrect && score.details && typeof score.details.correctCount === 'number')
+            else if (score.details && typeof score.details.correctCount === 'number')
                 points = score.details.correctCount;
             else
                 points = score.isCorrect ? (q.points || 1) : 0;
+                
             if (points > 0) {
                 if (skill === 'reading')
                     readingCorrect += points;
@@ -324,9 +335,11 @@ export const submitAttempt = async (attemptId, dto, userId) => {
         const detail = {
             questionId: q.id,
             questionNumber: q.question_number,
-            userAnswer: userAnswer,
+            userAnswer: isSkipped ? null : userAnswer,
             correctAnswer: q.content.correct_answer || q.content.correct_answers || q.content.items || q.content.blanks || q.content.labels,
-            isCorrect: points > 0,
+            isCorrect: score.isCorrect,
+            isPartiallyCorrect: score.isPartiallyCorrect,
+            pointsAwarded: points,
             explanation: q.content.explanation || ''
         };
         if (skill === 'reading')

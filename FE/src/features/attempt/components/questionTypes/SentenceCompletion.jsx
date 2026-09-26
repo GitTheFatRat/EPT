@@ -16,23 +16,24 @@ export default function SentenceCompletion({ question, value, onChange }) {
   const renderTemplate = () => {
     if (!content.text_template) return null;
     
-    // Split by {{n}}
-    const parts = content.text_template.split(/({{\d+}})/g);
+    // Split by {{n}} or [blank_n]
+    const parts = content.text_template.split(/({{\d+}}|\[blank_\d+\])/g);
     
     return (
-      <div className="leading-loose text-gray-800">
+      <div className="leading-loose text-gray-800 whitespace-pre-wrap">
         {parts.map((part, i) => {
-          const match = part.match(/^{{(\d+)}}$/);
+          const match = part.match(/^{{(\d+)}}$|^\[blank_(\d+)\]$/);
           if (match) {
-            const blankId = match[1];
+            const blankId = match[1] || match[2];
             const val = (value && typeof value === 'object') ? (value[blankId] || '') : '';
+            
             return (
               <input
                 key={i}
                 type="text"
                 value={val}
                 onChange={(e) => handleTemplateChange(blankId, e.target.value)}
-                className="mx-1 border-b-2 border-gray-300 focus:border-gray-900 outline-none w-32 px-1 text-center font-medium bg-transparent"
+                className="mx-1 border-b-2 border-gray-400 focus:border-gray-900 outline-none w-32 px-1 text-center font-medium bg-transparent"
               />
             );
           }

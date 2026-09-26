@@ -19,8 +19,12 @@ export const submitAttempt = createAsyncThunk(
 
 export const advanceSegment = createAsyncThunk(
   'attempt/advanceSegment',
-  async (attemptId, { rejectWithValue }) => {
+  async (attemptId, { getState, rejectWithValue }) => {
     try {
+      const { answers } = getState().attempt;
+      if (answers && Object.keys(answers).length > 0) {
+        await axiosClient.patch(`/attempts/${attemptId}/autosave`, { answers });
+      }
       const res = await axiosClient.post(`/attempts/${attemptId}/advance-segment`);
       return res.data;
     } catch (err) {
@@ -78,7 +82,16 @@ const attemptSlice = createSlice({
       (passages || []).forEach(p => {
         (p.questions || []).forEach(q => {
           if (!firstQuestionId) firstQuestionId = q.id;
-          newStatus[q.id] = state.answers[q.id] ? 'answered' : 'unanswered';
+          const ans = state.answers[q.id];
+          let hasAnswer = false;
+          if (ans !== undefined && ans !== null) {
+            if (typeof ans === 'object') {
+              hasAnswer = Object.values(ans).some(val => val && val.trim() !== '');
+            } else if (typeof ans === 'string') {
+              hasAnswer = ans.trim() !== '';
+            }
+          }
+          newStatus[q.id] = hasAnswer ? 'answered' : 'unanswered';
         });
       });
       state.answerStatus = newStatus;
@@ -88,7 +101,13 @@ const attemptSlice = createSlice({
         state.audioPlaybackState = { ...state.audioPlaybackState, ...audioPlayedState };
       } else {
         // default: no replay unless standalone practice listening maybe, but contract says assume false everywhere
-        state.audioPlaybackState = { hasPlayed: false, allowReplay: false, currentTimeSeconds: 0 };
+        const initialAudioState = {};
+        (passages || []).forEach(p => {
+          if (p.skill === 'listening') {
+             initialAudioState[p.id] = { hasPlayed: false };
+          }
+        });
+        state.audioPlaybackState = initialAudioState;
       }
       state.loadingData = false;
       state.submissionState = 'idle';
@@ -97,18 +116,31 @@ const attemptSlice = createSlice({
       const { questionId, answer } = action.payload;
       state.answers[questionId] = answer;
       
-      // If it was flagged, keep it flagged? Or change to answered?
-      // Usually flagged takes precedence or we can separate them.
-      // But status is a single enum. Let's keep it 'answered' unless user explicitly flags it again, or we can use a separate flaggedSet.
-      // Contract says: answerStatus: { [questionId]: 'unanswered' | 'answered' | 'flagged' }.
-      // If they answer, it becomes 'answered'.
-      state.answerStatus[questionId] = 'answered';
+      if (state.answerStatus[questionId] !== 'flagged') {
+        let hasAnswer = false;
+        if (answer !== undefined && answer !== null) {
+          if (typeof answer === 'object') {
+            hasAnswer = Object.values(answer).some(val => val && val.trim() !== '');
+          } else if (typeof answer === 'string') {
+            hasAnswer = answer.trim() !== '';
+          }
+        }
+        state.answerStatus[questionId] = hasAnswer ? 'answered' : 'unanswered';
+      }
     },
     toggleFlag(state, action) {
       const { questionId } = action.payload;
       if (state.answerStatus[questionId] === 'flagged') {
-        // revert to answered or unanswered based on existence of answer
-        state.answerStatus[questionId] = state.answers[questionId] ? 'answered' : 'unanswered';
+        const ans = state.answers[questionId];
+        let hasAnswer = false;
+        if (ans !== undefined && ans !== null) {
+          if (typeof ans === 'object') {
+            hasAnswer = Object.values(ans).some(val => val && val.trim() !== '');
+          } else if (typeof ans === 'string') {
+            hasAnswer = ans.trim() !== '';
+          }
+        }
+        state.answerStatus[questionId] = hasAnswer ? 'answered' : 'unanswered';
       } else {
         state.answerStatus[questionId] = 'flagged';
       }
@@ -117,7 +149,12 @@ const attemptSlice = createSlice({
       state.activeQuestionId = action.payload;
     },
     setAudioHasPlayed(state, action) {
-      state.audioPlaybackState.hasPlayed = action.payload;
+      const { passageId, hasPlayed } = action.payload;
+      if (!state.audioPlaybackState) state.audioPlaybackState = {};
+      if (!state.audioPlaybackState[passageId]) {
+        state.audioPlaybackState[passageId] = { hasPlayed: false };
+      }
+      state.audioPlaybackState[passageId].hasPlayed = hasPlayed;
     },
     setSubmissionState(state, action) {
       state.submissionState = action.payload;

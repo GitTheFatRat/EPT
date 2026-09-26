@@ -77,6 +77,31 @@ export default function ResultPage() {
     return Math.round((correctCount / totalQuestions) * 100);
   };
 
+  const formatAnswer = (ans) => {
+    if (ans === undefined || ans === null || ans === '') return 'None';
+    if (typeof ans === 'string') return ans;
+    if (Array.isArray(ans)) {
+      if (ans.length > 0 && typeof ans[0] === 'string') return ans.join(' / ');
+      return ans.map(b => {
+        if (b.blank_id || b.label_id) {
+          const id = b.blank_id || b.label_id;
+          const answers = b.correct_answers || [];
+          return `(${id}) ${answers.join(' / ')}`;
+        }
+        if (b.paragraph || b.statement) {
+           return `(${b.paragraph || b.statement}) ${b.correct_answer}`;
+        }
+        return JSON.stringify(b);
+      }).join(', ');
+    }
+    if (typeof ans === 'object') {
+      const entries = Object.entries(ans);
+      if (entries.length === 0) return 'None';
+      return entries.map(([k, v]) => `(${k}) ${v}`).join(', ');
+    }
+    return JSON.stringify(ans);
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
       <Sidebar username={user?.username} targetBand={user?.targetBand} />
@@ -99,7 +124,7 @@ export default function ResultPage() {
             <div className="grid grid-cols-4 gap-4">
               <div className="bg-green-50 rounded-xl p-4 border border-green-100 flex flex-col items-center">
                 <span className="text-2xl font-bold text-green-700">{correctCount}</span>
-                <span className="text-xs font-medium text-green-600 uppercase mt-1">Correct</span>
+                <span className="text-xs font-medium text-green-600 uppercase mt-1">Points</span>
               </div>
               <div className="bg-red-50 rounded-xl p-4 border border-red-100 flex flex-col items-center">
                 <span className="text-2xl font-bold text-red-700">{wrongCount}</span>
@@ -124,26 +149,39 @@ export default function ResultPage() {
           <div className="space-y-6">
             {detailAnswers?.map((item, idx) => {
               const isCorrect = item.isCorrect;
-              const isSkipped = item.userAnswer === null || item.userAnswer === undefined || item.userAnswer === '';
+              const isPartiallyCorrect = item.isPartiallyCorrect;
+              const isSkipped = item.userAnswer === null || item.userAnswer === undefined || item.userAnswer === '' || (typeof item.userAnswer === 'object' && Object.keys(item.userAnswer).length === 0);
               
               let statusLabel = 'Incorrect';
               let statusColor = 'text-red-700 bg-red-50 border-red-200';
               let icon = '✗';
+              let containerBorder = 'border-red-200';
+              let headerBg = 'bg-red-50 border-red-200';
               
               if (isCorrect) {
                 statusLabel = 'Correct';
                 statusColor = 'text-green-700 bg-green-50 border-green-200';
                 icon = '✓';
+                containerBorder = 'border-green-200';
+                headerBg = 'bg-green-50 border-green-200';
+              } else if (isPartiallyCorrect) {
+                statusLabel = `Partial (${item.pointsAwarded || 0} pts)`;
+                statusColor = 'text-yellow-700 bg-yellow-50 border-yellow-200';
+                icon = '✓';
+                containerBorder = 'border-yellow-200';
+                headerBg = 'bg-yellow-50 border-yellow-200';
               } else if (isSkipped) {
                 statusLabel = 'Skipped';
                 statusColor = 'text-gray-700 bg-gray-100 border-gray-200';
                 icon = '−';
+                containerBorder = 'border-gray-200';
+                headerBg = 'bg-gray-50 border-gray-200';
               }
 
               return (
-                <div key={item.questionId || idx} className={`rounded-xl border ${isCorrect ? 'border-green-200' : (isSkipped ? 'border-gray-200' : 'border-red-200')} bg-white overflow-hidden shadow-sm`}>
+                <div key={item.questionId || idx} className={`rounded-xl border ${containerBorder} bg-white overflow-hidden shadow-sm`}>
                   {/* Question Header */}
-                  <div className={`px-6 py-3 border-b flex justify-between items-center ${isCorrect ? 'bg-green-50 border-green-200' : (isSkipped ? 'bg-gray-50 border-gray-200' : 'bg-red-50 border-red-200')}`}>
+                  <div className={`px-6 py-3 border-b flex justify-between items-center ${headerBg}`}>
                     <span className="font-bold text-gray-900">Question {item.questionNumber || (idx + 1)}</span>
                     <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${statusColor}`}>
                       <span>{icon}</span>
@@ -157,8 +195,8 @@ export default function ResultPage() {
                       {/* User's Answer */}
                       <div>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Your Answer</p>
-                        <div className={`text-base font-medium ${isCorrect ? 'text-green-700' : (isSkipped ? 'text-gray-400 italic' : 'text-red-700')}`}>
-                          {isSkipped ? 'None' : JSON.stringify(item.userAnswer).replace(/(^"|"$)/g, '')}
+                        <div className={`text-base font-medium ${isCorrect ? 'text-green-700' : (isSkipped ? 'text-gray-400 italic' : (isPartiallyCorrect ? 'text-yellow-700' : 'text-red-700'))}`}>
+                          {formatAnswer(item.userAnswer)}
                         </div>
                       </div>
                       
@@ -166,7 +204,7 @@ export default function ResultPage() {
                       <div>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Correct Answer</p>
                         <div className="text-base font-medium text-gray-900">
-                          {JSON.stringify(item.correctAnswer).replace(/(^"|"$)/g, '')}
+                          {formatAnswer(item.correctAnswer)}
                         </div>
                       </div>
                     </div>

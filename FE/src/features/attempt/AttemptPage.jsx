@@ -62,6 +62,9 @@ export default function AttemptPage() {
   useEffect(() => {
     if (!expiresAt || loadingData) return;
     
+    // Reset trigger when moving to a new segment with a new expiration
+    submitTriggered.current = false;
+    
     const tick = () => {
       const now = new Date().getTime();
       const end = new Date(expiresAt).getTime();
@@ -132,14 +135,12 @@ export default function AttemptPage() {
     return `${m}:${s}`;
   };
 
+
+
+
+
   // Audio handling
   const audioRef = useRef(null);
-  const handlePlayAudio = () => {
-    if (audioRef.current && !audioPlaybackState.hasPlayed) {
-      audioRef.current.play();
-      dispatch(setAudioHasPlayed(true));
-    }
-  };
 
   if (loadingData) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-50">Loading attempt...</div>;
@@ -173,6 +174,27 @@ export default function AttemptPage() {
 
   const isListening = activePassage?.skill === 'listening';
 
+  const activePassageHasPlayed = activePassage ? !!audioPlaybackState?.[activePassage.id]?.hasPlayed : false;
+  const handlePlayAudio = () => {
+    if (audioRef.current && !activePassageHasPlayed && activePassage) {
+      audioRef.current.play();
+      dispatch(setAudioHasPlayed({ passageId: activePassage.id, hasPlayed: true }));
+    }
+  };
+
+  const getSubQuestionCount = (q) => {
+    if (q.type === 'sentence_completion' || q.type === 'summary_completion' || q.type === 'note_completion' || q.type === 'table_completion' || q.type === 'form_completion') {
+        return q.content?.blanks?.length || 1;
+    }
+    if (q.type === 'diagram_label_completion') {
+        return q.content?.labels?.length || 1;
+    }
+    if (q.type === 'matching_headings' || q.type === 'matching_information' || q.type === 'matching_features') {
+        return q.content?.items?.length || 1;
+    }
+    return 1;
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#f5f5f5] font-sans">
       {/* Header */}
@@ -203,10 +225,10 @@ export default function AttemptPage() {
               
               <button 
                 onClick={handlePlayAudio}
-                disabled={audioPlaybackState.hasPlayed}
-                className={`px-8 py-3 rounded-full font-bold transition-colors ${audioPlaybackState.hasPlayed ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
+                disabled={activePassageHasPlayed}
+                className={`px-8 py-3 rounded-full font-bold transition-colors ${activePassageHasPlayed ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-gray-800'}`}
               >
-                {audioPlaybackState.hasPlayed ? 'Audio Played' : 'Play Audio'}
+                {activePassageHasPlayed ? 'Audio Played' : 'Play Audio'}
               </button>
               
               {activePassage.audio_url && (
@@ -216,7 +238,6 @@ export default function AttemptPage() {
           ) : (
             <div className="prose max-w-none text-gray-800">
               <h2 className="text-2xl font-bold mb-6">{activePassage?.title}</h2>
-              {/* If passage_text contains HTML, we dangerouslySetInnerHTML. Otherwise just render */}
               <div dangerouslySetInnerHTML={{ __html: activePassage?.passage_text || '' }} />
             </div>
           )}
@@ -228,7 +249,13 @@ export default function AttemptPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
               <div className="flex justify-between items-start mb-6">
                 <span className="bg-gray-100 text-gray-800 text-sm font-bold px-3 py-1 rounded-md">
-                  Question {activeQuestion.question_number}
+                  {(() => {
+                    const count = getSubQuestionCount(activeQuestion);
+                    if (count > 1) {
+                      return `Questions ${activeQuestion.question_number} - ${activeQuestion.question_number + count - 1}`;
+                    }
+                    return `Question ${activeQuestion.question_number}`;
+                  })()}
                 </span>
                 <button 
                   onClick={() => dispatch(toggleFlag({ questionId: activeQuestion.id }))}
@@ -263,33 +290,58 @@ export default function AttemptPage() {
       <footer className="h-24 bg-white border-t border-gray-200 shrink-0 flex items-center justify-between px-6 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex-1 overflow-x-auto pr-6 flex items-center space-x-2">
           {passages.map(p => (
-            (p.questions || []).map(q => {
-              const status = answerStatus[q.id];
-              let btnClass = "w-10 h-10 shrink-0 rounded-md border flex items-center justify-center text-sm font-medium transition-colors ";
-              
-              if (activeQuestionId === q.id) {
-                btnClass += "border-gray-900 ring-2 ring-gray-900 ring-offset-1 ";
-              } else {
-                btnClass += "border-gray-300 hover:border-gray-400 ";
-              }
+            (p.questions || []).flatMap(q => {
+              const count = getSubQuestionCount(q);
+              const buttons = [];
+              for (let i = 0; i < count; i++) {
+                const subNumber = q.question_number + i;
+                const status = answerStatus[q.id];
+                let btnClass = "w-10 h-10 shrink-0 rounded-md border flex items-center justify-center text-sm font-medium transition-colors ";
+                
+                if (activeQuestionId === q.id) {
+                  btnClass += "border-gray-900 ring-2 ring-gray-900 ring-offset-1 ";
+                } else {
+                  btnClass += "border-gray-300 hover:border-gray-400 ";
+                }
 
-              if (status === 'flagged') {
-                btnClass += "bg-yellow-400 text-yellow-900 border-yellow-500";
-              } else if (status === 'answered') {
-                btnClass += "bg-blue-100 text-blue-900 border-blue-300";
-              } else {
-                btnClass += "bg-white text-gray-600";
-              }
+                if (status === 'flagged') {
+                  btnClass += "bg-yellow-400 text-yellow-900 border-yellow-500";
+                } else {
+                  // check if this specific blank is answered if possible
+                  let isAnswered = false;
+                  const ans = answers[q.id];
+                  if (ans) {
+                    if (typeof ans === 'object') {
+                      // rough check: if any of the keys match (i+1)
+                      const blankKey = String(i + 1);
+                      if (ans[blankKey] && ans[blankKey].trim() !== '') {
+                        isAnswered = true;
+                      } else if (ans[q.content?.blanks?.[i]?.blank_id]) {
+                         isAnswered = !!ans[q.content.blanks[i].blank_id].trim();
+                      }
+                    } else if (typeof ans === 'string' && ans.trim() !== '') {
+                      isAnswered = true;
+                    }
+                  }
+                  
+                  if (isAnswered) {
+                    btnClass += "bg-blue-100 text-blue-900 border-blue-300";
+                  } else {
+                    btnClass += "bg-white text-gray-600";
+                  }
+                }
 
-              return (
-                <button 
-                  key={q.id}
-                  onClick={() => dispatch(setActiveQuestion(q.id))}
-                  className={btnClass}
-                >
-                  {q.question_number}
-                </button>
-              );
+                buttons.push(
+                  <button 
+                    key={`${q.id}-${subNumber}`}
+                    onClick={() => dispatch(setActiveQuestion(q.id))}
+                    className={btnClass}
+                  >
+                    {subNumber}
+                  </button>
+                );
+              }
+              return buttons;
             })
           ))}
         </div>

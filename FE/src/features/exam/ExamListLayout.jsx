@@ -29,7 +29,7 @@ export default function ExamListLayout({ skillCategory, title, subtitle }) {
           axiosClient.get('/auth/me', { headers }),
           axiosClient.get('/results/stats', { headers }),
           axiosClient.get('/results', { headers }),
-          axiosClient.get('/exams', { headers }),
+          axiosClient.get('/exams?limit=100', { headers }),
         ]);
 
         if (meRes.status === 'fulfilled') setUser(meRes.value.data.data);
@@ -68,8 +68,8 @@ export default function ExamListLayout({ skillCategory, title, subtitle }) {
     const hasReading = passages.some(p => p.skill === 'reading');
     const hasListening = passages.some(p => p.skill === 'listening');
     
-    if (skillCategory === 'reading') return hasReading;
-    if (skillCategory === 'listening') return hasListening;
+    if (skillCategory === 'reading') return hasReading && !hasListening;
+    if (skillCategory === 'listening') return hasListening && !hasReading;
     if (skillCategory === 'mock') return hasReading && hasListening;
     return false;
   });

@@ -2,9 +2,13 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const getInitialState = () => {
   try {
-    const accessToken = localStorage.getItem('accessToken');
-    const refreshToken = localStorage.getItem('refreshToken');
-    const user = JSON.parse(localStorage.getItem('user'));
+    let accessToken = localStorage.getItem('accessToken');
+    let refreshToken = localStorage.getItem('refreshToken');
+    let user = JSON.parse(localStorage.getItem('user'));
+    
+    if (accessToken === 'undefined') accessToken = null;
+    if (refreshToken === 'undefined') refreshToken = null;
+
     return {
       accessToken: accessToken || null,
       refreshToken: refreshToken || null,
