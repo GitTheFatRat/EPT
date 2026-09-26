@@ -182,7 +182,7 @@ export default function ResultPage() {
                 <div key={item.questionId || idx} className={`rounded-xl border ${containerBorder} bg-white overflow-hidden shadow-sm`}>
                   {/* Question Header */}
                   <div className={`px-6 py-3 border-b flex justify-between items-center ${headerBg}`}>
-                    <span className="font-bold text-gray-900">Question {item.questionNumber || (idx + 1)}</span>
+                    <span className="font-bold text-gray-900">Question {(!result?.exam?.code?.includes('FULL')) ? (idx + 1) : (item.questionNumber || (idx + 1))}</span>
                     <div className={`flex items-center space-x-1.5 px-3 py-1 rounded-full border text-xs font-bold uppercase tracking-wider ${statusColor}`}>
                       <span>{icon}</span>
                       <span>{statusLabel}</span>

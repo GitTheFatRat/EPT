@@ -20,7 +20,7 @@ export default function AttemptPage() {
   
   const { 
     expiresAt, 
-    passages, 
+    passages: rawPassages, 
     answers, 
     answerStatus, 
     activeQuestionId, 
@@ -155,6 +155,20 @@ export default function AttemptPage() {
     );
   }
 
+    const passages = React.useMemo(() => {
+    if (mode === 'full_test') return rawPassages;
+    let currentLocalNumber = 1;
+    return rawPassages.map(p => ({
+      ...p,
+      questions: (p.questions || []).map(q => {
+        const rewritten = { ...q, questionNumber: currentLocalNumber };
+        const count = getSubQuestionCount(q);
+        currentLocalNumber += count;
+        return rewritten;
+      })
+    }));
+  }, [rawPassages, mode]);
+
   const isLowTime = remainingTime < 300; // < 5 mins
   
   // Find current active passage/question
@@ -231,14 +245,14 @@ export default function AttemptPage() {
                 {activePassageHasPlayed ? 'Audio Played' : 'Play Audio'}
               </button>
               
-              {activePassage.audio_url && (
-                <audio ref={audioRef} src={activePassage.audio_url} className="hidden" />
+              {activePassage.audioUrl && (
+                <audio ref={audioRef} src={activePassage.audioUrl} className="hidden" />
               )}
             </div>
           ) : (
             <div className="prose max-w-none text-gray-800">
               <h2 className="text-2xl font-bold mb-6">{activePassage?.title}</h2>
-              <div dangerouslySetInnerHTML={{ __html: activePassage?.passage_text || '' }} />
+              <div dangerouslySetInnerHTML={{ __html: activePassage?.passageText || '' }} />
             </div>
           )}
         </div>
@@ -269,9 +283,9 @@ export default function AttemptPage() {
                 </button>
               </div>
               
-              {activeQuestion.group_instruction && (
+              {activeQuestion.groupInstruction && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 border border-gray-100">
-                  {activeQuestion.group_instruction}
+                  {activeQuestion.groupInstruction}
                 </div>
               )}
 
