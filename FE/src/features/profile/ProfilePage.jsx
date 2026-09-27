@@ -199,7 +199,7 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-[#f8fafc] font-sans">
-        <Sidebar username={user?.username} targetBand={user?.targetBand} />
+        <Sidebar username={user?.fullName || user?.username} targetBand={user?.targetBand} />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-gray-500">Đang tải...</p>
         </div>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc] font-sans">
-      <Sidebar username={user?.username} targetBand={user?.targetBand} />
+      <Sidebar username={user?.fullName || user?.username} targetBand={user?.targetBand} />
       
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-8 py-10">
@@ -282,7 +282,7 @@ export default function ProfilePage() {
                       <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-gray-200 font-bold text-2xl">
-                        {user?.username?.substring(0, 2).toUpperCase()}
+                        {(user?.fullName || user?.username)?.substring(0, 2).toUpperCase()}
                       </div>
                     )}
                     

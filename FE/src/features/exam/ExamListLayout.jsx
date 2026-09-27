@@ -47,7 +47,7 @@ export default function ExamListLayout({ skillCategory, title, subtitle }) {
     fetchData();
   }, [accessToken, navigate]);
 
-  const username = user?.username || 'Student';
+  const username = user?.fullName || user?.username || 'Student';
   const targetBand = user?.targetBand || '--';
 
   // Current band

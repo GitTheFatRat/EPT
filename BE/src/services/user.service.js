@@ -7,7 +7,7 @@ import { AppError } from '../utils/AppError.js';
 export async function getMe(userId) {
     const { data, error } = await supabase
         .from('users')
-        .select('id, username, email, role, avatar_url, banner_url, description, target_band, study_type')
+        .select('id, username, email, full_name, role, avatar_url, banner_url, description, target_band, study_type')
         .eq('id', userId)
         .single();
     if (error || !data) {
@@ -46,7 +46,7 @@ export async function updateMe(userId, dto) {
         .from('users')
         .update(updates)
         .eq('id', userId)
-        .select('id, username, email, role, avatar_url, banner_url, description, target_band, study_type')
+        .select('id, username, email, full_name, role, avatar_url, banner_url, description, target_band, study_type')
         .single();
     if (error || !data) {
         throw new AppError(400, 'BAD_REQUEST', 'Failed to update user profile');

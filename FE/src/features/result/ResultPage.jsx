@@ -47,7 +47,7 @@ export default function ResultPage() {
   if (error || !result) {
     return (
       <div className="flex min-h-screen bg-gray-50 font-sans">
-        <Sidebar username={user?.username} targetBand={user?.targetBand} />
+        <Sidebar username={user?.fullName || user?.username} targetBand={user?.targetBand} />
         <div className="flex-1 flex items-center justify-center">
           <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 text-center">
             <h3 className="text-xl font-bold text-gray-900 mb-2">Lỗi tải dữ liệu</h3>
@@ -104,7 +104,7 @@ export default function ResultPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 font-sans">
-      <Sidebar username={user?.username} targetBand={user?.targetBand} />
+      <Sidebar username={user?.fullName || user?.username} targetBand={user?.targetBand} />
       
       <div className="flex-1 overflow-y-auto">
         {/* Header / Summary Section */}

@@ -24,7 +24,7 @@ export async function register(dto) {
         username: dto.username,
         password_hash: passwordHash,
     })
-        .select('id, username, email')
+        .select('id, username, email, full_name')
         .single();
     if (error || !data) {
         throw new AppError(500, 'INTERNAL_SERVER_ERROR', 'Failed to create user');

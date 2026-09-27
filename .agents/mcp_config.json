@@ -54,6 +54,14 @@
         "chrome-devtools-mcp@latest",
         "--autoConnect"
       ]
+    },
+    "graft": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@nanonets/graft",
+        "mcp"
+      ]
     }
   }
 }

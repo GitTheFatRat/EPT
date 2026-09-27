@@ -34,7 +34,7 @@ export default function LeaderboardPage() {
     fetchMe();
   }, [accessToken, navigate]);
 
-  const username = user?.username || 'Student';
+  const username = user?.fullName || user?.username || 'Student';
   const targetBand = user?.targetBand || '--';
 
   if (loading) {

@@ -61,7 +61,7 @@ export default function DashboardPage() {
     return 'Good evening';
   };
 
-  const username = user?.username || 'Student';
+  const displayName = user?.fullName || user?.username || 'Student';
   const targetBand = user?.targetBand || '--';
 
   // Extract band scores
@@ -157,7 +157,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex min-h-screen font-sans bg-gray-50">
-      <Sidebar username={username} targetBand={targetBand} />
+      <Sidebar username={displayName} targetBand={targetBand} />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col p-8 overflow-y-auto">
@@ -165,7 +165,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="flex justify-between items-end">
             <div>
-              <h2 className="text-3xl font-bold text-gray-900">{getGreeting()}, {username}</h2>
+              <h2 className="text-3xl font-bold text-gray-900">{getGreeting()}, {displayName}</h2>
               <p className="text-gray-500 mt-1">{mockDashboardData.examDaysLeft} days until your exam — stay consistent and you'll hit {targetBand}.</p>
             </div>
             <div className="bg-white border border-gray-200 px-4 py-2 rounded-full text-sm font-medium flex items-center shadow-sm">
