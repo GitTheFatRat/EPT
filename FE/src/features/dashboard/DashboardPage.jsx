@@ -84,6 +84,21 @@ export default function DashboardPage() {
        }
     }
 
+  const calculateProgress = (bandStr) => {
+    if (bandStr === '--') return 0;
+    const current = parseFloat(bandStr);
+    const denominator = user?.targetBand ? parseFloat(user.targetBand) : 9.0;
+    if (!denominator) return 0;
+    const ratio = (current / denominator) * 100;
+    return Math.min(Math.round(ratio), 100);
+  };
+
+  const progressOverall = calculateProgress(overallBand);
+  const progressListening = calculateProgress(listeningBand);
+  const progressReading = calculateProgress(readingBand);
+  
+  const displayTarget = user?.targetBand ? `/ ${user.targetBand}` : '/ 9.0';
+
   // Tests completed & avg score
   const testsCompleted = totalResults || 0;
   let avgScore = '-- / --';
@@ -182,10 +197,10 @@ export default function DashboardPage() {
               <div className="mt-auto">
                 <div className="flex justify-between text-xs text-gray-400 mb-1">
                   <span>Progress</span>
-                  <span>{mockDashboardData.progressOverall}%</span>
+                  <span>{progressOverall}%</span>
                 </div>
                 <div className="w-full bg-gray-700 h-1.5 rounded-full">
-                  <div className="bg-white h-1.5 rounded-full" style={{ width: `${mockDashboardData.progressOverall}%` }}></div>
+                  <div className="bg-white h-1.5 rounded-full" style={{ width: `${progressOverall}%` }}></div>
                 </div>
               </div>
             </div>
@@ -195,11 +210,11 @@ export default function DashboardPage() {
               <div className="text-5xl font-bold text-gray-900 mb-6">{listeningBand}</div>
               <div className="mt-auto">
                 <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span>/ 9.0</span>
-                  <span>{mockDashboardData.progressListening}%</span>
+                  <span>{displayTarget}</span>
+                  <span>{progressListening}%</span>
                 </div>
                 <div className="w-full bg-gray-100 h-1.5 rounded-full">
-                  <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${mockDashboardData.progressListening}%` }}></div>
+                  <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${progressListening}%` }}></div>
                 </div>
               </div>
             </div>
@@ -209,11 +224,11 @@ export default function DashboardPage() {
               <div className="text-5xl font-bold text-gray-900 mb-6">{readingBand}</div>
               <div className="mt-auto">
                 <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span>/ 9.0</span>
-                  <span>{mockDashboardData.progressReading}%</span>
+                  <span>{displayTarget}</span>
+                  <span>{progressReading}%</span>
                 </div>
                 <div className="w-full bg-gray-100 h-1.5 rounded-full">
-                  <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${mockDashboardData.progressReading}%` }}></div>
+                  <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: `${progressReading}%` }}></div>
                 </div>
               </div>
             </div>
