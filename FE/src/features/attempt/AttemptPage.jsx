@@ -156,14 +156,56 @@ export default function AttemptPage() {
     return 1;
   };
 
+  const renumberGroupInstruction = (instruction, localStart, localEnd) => {
+    if (!instruction) return instruction;
+    // Extract the original number range from the leading "Questions X-Y" pattern
+    const rangeMatch = instruction.match(/Questions\s+(\d+)\s*[-–]\s*(\d+)/i);
+    const andMatch = instruction.match(/Questions\s+(\d+)\s+and\s+(\d+)/i);
+    
+    if (rangeMatch) {
+      const origStart = rangeMatch[1];
+      const origEnd = rangeMatch[2];
+      const localRange = localStart === localEnd ? `${localStart}` : `${localStart}-${localEnd}`;
+      // Replace the leading "Questions X-Y" label
+      let result = instruction.replace(
+        new RegExp(`Questions\\s+${origStart}\\s*[-–]\\s*${origEnd}`, 'gi'),
+        `Questions ${localRange}`
+      );
+      // Also replace parenthetical "(X-Y)" references to the same range in body text
+      result = result.replace(
+        new RegExp(`\\(${origStart}\\s*[-–]\\s*${origEnd}\\)`, 'g'),
+        `(${localRange})`
+      );
+      return result;
+    }
+    
+    if (andMatch) {
+      const origA = andMatch[1];
+      const origB = andMatch[2];
+      let result = instruction.replace(
+        new RegExp(`Questions\\s+${origA}\\s+and\\s+${origB}`, 'gi'),
+        `Questions ${localStart} and ${localEnd}`
+      );
+      return result;
+    }
+    
+    return instruction;
+  };
+
   const passages = React.useMemo(() => {
     if (mode === 'full_test') return rawPassages;
     let currentLocalNumber = 1;
     return rawPassages.map(p => ({
       ...p,
       questions: (p.questions || []).map(q => {
-        const rewritten = { ...q, questionNumber: currentLocalNumber };
         const count = getSubQuestionCount(q);
+        const localStart = currentLocalNumber;
+        const localEnd = currentLocalNumber + count - 1;
+        const rewritten = {
+          ...q,
+          questionNumber: currentLocalNumber,
+          groupInstruction: renumberGroupInstruction(q.groupInstruction, localStart, localEnd),
+        };
         currentLocalNumber += count;
         return rewritten;
       })
@@ -285,7 +327,7 @@ export default function AttemptPage() {
               </div>
               
               {activeQuestion.groupInstruction && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg text-sm text-gray-600 border border-gray-100">
+                <div className="mb-6 p-4 bg-white rounded-lg text-sm text-blue-700 border-l-4 border-blue-500 shadow-sm select-none">
                   {activeQuestion.groupInstruction}
                 </div>
               )}
@@ -315,7 +357,7 @@ export default function AttemptPage() {
                 let btnClass = "w-10 h-10 shrink-0 rounded-md border flex items-center justify-center text-sm font-medium transition-colors ";
                 
                 if (activeQuestionId === q.id) {
-                  btnClass += "border-gray-900 ring-2 ring-gray-900 ring-offset-1 ";
+                  btnClass += "border-blue-400 bg-blue-50 text-blue-700 ";
                 } else {
                   btnClass += "border-gray-300 hover:border-gray-400 ";
                 }

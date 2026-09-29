@@ -25,7 +25,7 @@ users < exam_attempts > exams < exam_passages > passages < questions
 | id | uuid, PK | `gen_random_uuid()` |
 | username | varchar(50) | unique, not null |
 | email | varchar(255) | unique, not null |
-  | full_name | varchar(255) | nullable |
+| full_name | varchar(255) | nullable |
 | password_hash | text | not null — bcrypt hash, never store plaintext |
 | role | varchar(20) | `'student'` \| `'admin'`, default `'student'` |
 | avatar_url | text | nullable |

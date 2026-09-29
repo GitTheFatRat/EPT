@@ -2,17 +2,21 @@ import React from 'react';
 import MultipleChoice from './questionTypes/MultipleChoice';
 import TrueFalseNotGiven from './questionTypes/TrueFalseNotGiven';
 import SentenceCompletion from './questionTypes/SentenceCompletion';
+import MatchingType from './questionTypes/MatchingType';
 
 const typeComponentMap = {
   multiple_choice: MultipleChoice,
   true_false_not_given: TrueFalseNotGiven,
-  yes_no_not_given: TrueFalseNotGiven, // same UI basically
+  yes_no_not_given: TrueFalseNotGiven,
   sentence_completion: SentenceCompletion,
   summary_completion: SentenceCompletion,
   note_completion: SentenceCompletion,
   table_completion: SentenceCompletion,
   form_completion: SentenceCompletion,
-  short_answer: SentenceCompletion, // simple text input
+  short_answer: SentenceCompletion,
+  matching_information: MatchingType,
+  matching_headings: MatchingType,
+  matching_features: MatchingType,
 };
 
 export default function QuestionRenderer({ question, value, onChange }) {

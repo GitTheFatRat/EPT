@@ -290,7 +290,7 @@ export default function DashboardPage() {
                   <div key={idx} className="flex items-center">
                     <span className="text-[10px] text-gray-400 w-8">{item.month}</span>
                     <div className="flex-1 mx-3 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-[#111827] rounded-full" style={{ width: `${(item.band / 9) * 100}%` }}></div>
+                      <div className="h-full bg-[#111827] rounded-full" style={{ width: `${(item.band / (user?.targetBand ? parseFloat(user.targetBand) : 9.0)) * 100}%` }}></div>
                     </div>
                     <span className="text-xs font-bold text-gray-900 w-6 text-right">{item.band}</span>
                   </div>
@@ -373,3 +373,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

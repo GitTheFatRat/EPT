@@ -32,7 +32,7 @@ All success responses wrap data as:
 ### `POST /api/auth/register`
 ```json
 // Request
-{ "username": "string", "email": "string", "password": "string" }
+{ "username": "string", "fullName": "string", "email": "string", "password": "string" }
 // Response 201
 { "success": true, "data": { "user": { "id": "uuid", "username": "...", "email": "..." } } }
 ```
@@ -49,7 +49,7 @@ All success responses wrap data as:
   "data": {
     "accessToken": "jwt...",
     "refreshToken": "jwt...",
-    "user": { "id": "uuid", "username": "...", "email": "...", "role": "student" }
+    "user": { "id": "uuid", "username": "...", "email": "...", "fullName": "...", "role": "student" }
   }
 }
 ```
@@ -74,7 +74,7 @@ All success responses wrap data as:
 ### `GET /api/auth/me` (auth required)
 ```json
 // Response 200
-{ "success": true, "data": { "id": "uuid", "username": "...", "email": "...", "role": "...", "avatarUrl": null, "bannerUrl": null, "description": null, "targetBand": null, "studyType": null } }
+{ "success": true, "data": { "id": "uuid", "username": "...", "email": "...", "role": "...", "fullName": "string", "avatarUrl": null, "bannerUrl": null, "description": null, "targetBand": null, "studyType": null } }
 ```
 
 ---
@@ -85,7 +85,7 @@ All success responses wrap data as:
 ```json
 // Request (all fields optional)
 {
-  "avatarUrl": "string",
+  "fullName": "string", "avatarUrl": "string",
   "bannerUrl": "string",
   "description": "string",
   "targetBand": 7.0,
@@ -365,3 +365,4 @@ Query params: `?page=1&limit=20`
 - Missing/invalid token → `401` with `code: "UNAUTHORIZED"`.
 - Valid token but wrong role for an admin route → `403` with `code: "FORBIDDEN"`.
 - Expired access token → `401` with `code: "TOKEN_EXPIRED"` (frontend axios interceptor should catch this specific code and attempt `/api/auth/refresh` once before failing).
+

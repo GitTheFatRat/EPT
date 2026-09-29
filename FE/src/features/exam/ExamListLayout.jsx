@@ -95,15 +95,12 @@ export default function ExamListLayout({ skillCategory, title, subtitle }) {
     // For mock test, it's 3 reading + 4 listening = 7 sections. If API gives different, we just use the length or hardcode 7 if mock.
     // Wait, prompt says: "Mock Test / Full Test luôn là 3 Reading passages + 4 Listening sections = 120 câu tổng... số passages/sections theo skill"
     // Let's compute actual questions
-    let totalQuestions = 0;
-    relevantPassages.forEach(p => {
-       totalQuestions += (p.questions?.length || 0);
-    });
+    let totalQuestions = exam.totalQuestions || 0;
     
     // For Mock, prompt explicitly asks to ensure we show 120 Q, 1h 40m, etc. if it's a mock.
     // If we count dynamically, and it's 120, great. If API doesn't have it, we might need a fallback.
     const displayPassagesCount = skillCategory === 'mock' ? 7 : passageCount;
-    const displayQuestionsCount = skillCategory === 'mock' ? 120 : (totalQuestions > 0 ? totalQuestions : 40);
+    const displayQuestionsCount = totalQuestions > 0 ? totalQuestions : (skillCategory === 'mock' ? 80 : 40);
 
     let displayDuration = '20 min';
     if (skillCategory === 'reading') displayDuration = '20 min';
@@ -282,3 +279,4 @@ export default function ExamListLayout({ skillCategory, title, subtitle }) {
     </div>
   );
 }
+

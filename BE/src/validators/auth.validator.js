@@ -6,6 +6,7 @@ export const registerSchema = z.object({
         .min(3)
         .max(50)
         .regex(/^[a-zA-Z0-9_]+$/, 'Username must contain only letters, numbers, and underscores'),
+    fullName: z.string().min(1).max(255),
     email: z.string().email(),
     password: z.string().min(8),
 });
@@ -34,4 +35,6 @@ export const validate = (schema) => (req, _res, next) => {
     req.body = result.data;
     next();
 };
+
+
 

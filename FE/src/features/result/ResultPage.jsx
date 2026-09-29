@@ -115,10 +115,12 @@ export default function ResultPage() {
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{skill} Result</span>
                 <h1 className="text-3xl font-bold text-gray-900 mt-1">{exam?.title || 'Test Result'}</h1>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Band Score</p>
-                <div className="text-4xl font-black text-[#111827]">{bandScore ?? '--'}</div>
-              </div>
+              {skill === 'overall' && (
+                <div className="text-right">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Band Score</p>
+                  <div className="text-4xl font-black text-[#111827]">{bandScore ?? '--'}</div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-4 gap-4">
@@ -191,23 +193,116 @@ export default function ResultPage() {
 
                   {/* Body */}
                   <div className="p-6">
-                    <div className="grid grid-cols-2 gap-8 mb-4">
-                      {/* User's Answer */}
-                      <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Your Answer</p>
-                        <div className={`text-base font-medium ${isCorrect ? 'text-green-700' : (isSkipped ? 'text-gray-400 italic' : (isPartiallyCorrect ? 'text-yellow-700' : 'text-red-700'))}`}>
-                          {formatAnswer(item.userAnswer)}
+                    {(() => {
+                      // Detect multi-item questions for table display
+                      const correctAns = item.correctAnswer;
+                      const userAns = item.userAnswer;
+                      const isMultiItem = Array.isArray(correctAns) && correctAns.length > 0 && typeof correctAns[0] === 'object';
+                      const isMultiObject = !isMultiItem && typeof userAns === 'object' && userAns !== null && !Array.isArray(userAns) && Object.keys(userAns).length > 1;
+
+                      if (isMultiItem) {
+                        // Multi-item: blanks, labels, paragraphs, statements
+                        return (
+                          <div className="overflow-hidden rounded-lg border border-gray-200">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200">
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-12">#</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Your Answer</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Correct Answer</th>
+                                  <th className="px-4 py-2 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-16"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {correctAns.map((cItem, cIdx) => {
+                                  const subId = cItem.blank_id || cItem.label_id || cItem.paragraph || cItem.statement || String(cIdx + 1);
+                                  const correctVal = cItem.correct_answers
+                                    ? cItem.correct_answers.join(' / ')
+                                    : cItem.correct_answer || '';
+                                  
+                                  // Find user's answer for this sub-item
+                                  let userVal = '';
+                                  if (typeof userAns === 'object' && userAns !== null && !Array.isArray(userAns)) {
+                                    userVal = userAns[String(cIdx)] || userAns[subId] || '';
+                                  }
+                                  
+                                  // Determine correctness for this sub-item
+                                  const correctAnswers = cItem.correct_answers || [cItem.correct_answer || ''];
+                                  const isSubCorrect = correctAnswers.some(ca =>
+                                    ca && userVal && ca.trim().toLowerCase() === userVal.trim().toLowerCase()
+                                  );
+                                  const isSubSkipped = !userVal || (typeof userVal === 'string' && userVal.trim() === '');
+
+                                  return (
+                                    <tr key={cIdx} className={`border-b border-gray-100 last:border-b-0 ${isSubCorrect ? 'bg-green-50/50' : isSubSkipped ? 'bg-gray-50/50' : 'bg-red-50/50'}`}>
+                                      <td className="px-4 py-2.5 text-gray-500 font-medium">{subId}</td>
+                                      <td className={`px-4 py-2.5 font-medium ${isSubCorrect ? 'text-green-700' : isSubSkipped ? 'text-gray-400 italic' : 'text-red-700'}`}>
+                                        {isSubSkipped ? '—' : userVal}
+                                      </td>
+                                      <td className="px-4 py-2.5 font-medium text-gray-900">{correctVal}</td>
+                                      <td className="px-4 py-2.5 text-center">
+                                        <span className={`text-sm font-bold ${isSubCorrect ? 'text-green-600' : isSubSkipped ? 'text-gray-400' : 'text-red-500'}`}>
+                                          {isSubCorrect ? '✓' : isSubSkipped ? '−' : '✗'}
+                                        </span>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      }
+
+                      if (isMultiObject) {
+                        // Object-based multi answers (e.g. matching where user answer is {0: "A", 1: "B"})
+                        const entries = Object.entries(userAns);
+                        return (
+                          <div className="overflow-hidden rounded-lg border border-gray-200">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="bg-gray-50 border-b border-gray-200">
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-12">#</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Your Answer</th>
+                                  <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Correct Answer</th>
+                                  <th className="px-4 py-2 text-center text-xs font-bold text-gray-500 uppercase tracking-wider w-16"></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {entries.map(([key, val]) => {
+                                  const correctForKey = formatAnswer(correctAns);
+                                  return (
+                                    <tr key={key} className="border-b border-gray-100 last:border-b-0">
+                                      <td className="px-4 py-2.5 text-gray-500 font-medium">{key}</td>
+                                      <td className="px-4 py-2.5 font-medium text-gray-800">{val || '—'}</td>
+                                      <td className="px-4 py-2.5 font-medium text-gray-900" colSpan="2">{idx === 0 ? correctForKey : ''}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      }
+
+                      // Simple single-answer display
+                      return (
+                        <div className="grid grid-cols-2 gap-8 mb-4">
+                          <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Your Answer</p>
+                            <div className={`text-base font-medium ${isCorrect ? 'text-green-700' : (isSkipped ? 'text-gray-400 italic' : (isPartiallyCorrect ? 'text-yellow-700' : 'text-red-700'))}`}>
+                              {formatAnswer(item.userAnswer)}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Correct Answer</p>
+                            <div className="text-base font-medium text-gray-900">
+                              {formatAnswer(item.correctAnswer)}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                      
-                      {/* Correct Answer */}
-                      <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Correct Answer</p>
-                        <div className="text-base font-medium text-gray-900">
-                          {formatAnswer(item.correctAnswer)}
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Explanation */}
                     {item.explanation && (

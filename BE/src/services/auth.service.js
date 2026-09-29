@@ -22,6 +22,7 @@ export async function register(dto) {
         .insert({
         email: dto.email,
         username: dto.username,
+        full_name: dto.fullName,
         password_hash: passwordHash,
     })
         .select('id, username, email, full_name')
@@ -38,7 +39,7 @@ export async function register(dto) {
 export async function login(dto) {
     const { data: user, error } = await supabase
         .from('users')
-        .select('id, username, email, password_hash, role')
+        .select('id, username, email, password_hash, role, full_name')
         .eq('email', dto.email)
         .single();
     if (error || !user) {
@@ -70,6 +71,7 @@ export async function login(dto) {
             id: user.id,
             username: user.username,
             email: user.email,
+            fullName: user.full_name,
             role: user.role,
         },
     };
@@ -122,4 +124,6 @@ export async function logout(dto) {
         // Ignore errors on logout
     }
 }
+
+
 

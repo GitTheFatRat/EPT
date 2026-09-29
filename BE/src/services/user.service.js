@@ -17,6 +17,7 @@ export async function getMe(userId) {
         id: data.id,
         username: data.username,
         email: data.email,
+        fullName: data.full_name,
         role: data.role,
         avatarUrl: data.avatar_url,
         bannerUrl: data.banner_url,
@@ -55,6 +56,7 @@ export async function updateMe(userId, dto) {
         id: data.id,
         username: data.username,
         email: data.email,
+        fullName: data.full_name,
         role: data.role,
         avatarUrl: data.avatar_url,
         bannerUrl: data.banner_url,
@@ -134,4 +136,5 @@ export async function uploadBanner(userId, fileBuffer, mimeType, originalName) {
 
     return publicUrl;
 }
+
 

@@ -33,6 +33,7 @@ export default function RegisterPage() {
       const username = generateUsernameFromFullName(form.fullName);
       await axiosClient.post('/auth/register', {
         username,
+        fullName: form.fullName,
         email: form.email,
         password: form.password,
       });
