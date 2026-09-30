@@ -1,1 +1,47 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Environment variables
+.env
+.env.local
+*.local
+
+# PDF source materials
 PDF/
+
+# Temporary debug/scratch files
+scratch-*.js
+fix_*.js
+fix-*.js
+test-*.js
+test-*.mjs
+seed-*.js
+*.tmp
+*.bak
+
+# Test output
+test-results/
+playwright-report/
+coverage/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
