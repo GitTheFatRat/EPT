@@ -332,6 +332,13 @@ export const submitAttempt = async (attemptId, dto, userId) => {
                     listeningWrong++;
             }
         }
+        let maxPoints = 1;
+        if (score.details) {
+            maxPoints = score.details.totalItems || score.details.totalBlanks || score.details.totalLabels || score.details.totalCount || q.points || 1;
+        } else {
+            maxPoints = q.points || 1;
+        }
+        
         const detail = {
             questionId: q.id,
             questionNumber: q.question_number,
@@ -340,6 +347,7 @@ export const submitAttempt = async (attemptId, dto, userId) => {
             isCorrect: score.isCorrect,
             isPartiallyCorrect: score.isPartiallyCorrect,
             pointsAwarded: points,
+            maxPoints: maxPoints,
             explanation: q.content.explanation || ''
         };
         if (skill === 'reading')
@@ -362,20 +370,25 @@ export const submitAttempt = async (attemptId, dto, userId) => {
         const readingBand = getBandScore('reading', readingCorrect);
         const listeningBand = getBandScore('listening', listeningCorrect);
         const overallBand = Math.round((readingBand + listeningBand) / 2 * 2) / 2;
+        
+        const readingTotal = readingDetails.reduce((sum, d) => sum + (d.maxPoints || 1), 0);
+        const listeningTotal = listeningDetails.reduce((sum, d) => sum + (d.maxPoints || 1), 0);
+        const overallTotal = overallDetails.reduce((sum, d) => sum + (d.maxPoints || 1), 0);
+
         resultsToInsert.push({
             attempt_id: attemptId, user_id: userId, exam_id: attempt.exam_id, skill: 'reading',
             correct_count: readingCorrect, wrong_count: readingWrong, skipped_count: readingSkipped,
-            total_questions: readingDetails.length, band_score: readingBand, detail_answers: readingDetails
+            total_questions: readingTotal, band_score: readingBand, detail_answers: readingDetails
         });
         resultsToInsert.push({
             attempt_id: attemptId, user_id: userId, exam_id: attempt.exam_id, skill: 'listening',
             correct_count: listeningCorrect, wrong_count: listeningWrong, skipped_count: listeningSkipped,
-            total_questions: listeningDetails.length, band_score: listeningBand, detail_answers: listeningDetails
+            total_questions: listeningTotal, band_score: listeningBand, detail_answers: listeningDetails
         });
         resultsToInsert.push({
             attempt_id: attemptId, user_id: userId, exam_id: attempt.exam_id, skill: 'overall',
             correct_count: readingCorrect + listeningCorrect, wrong_count: readingWrong + listeningWrong, skipped_count: readingSkipped + listeningSkipped,
-            total_questions: overallDetails.length, band_score: overallBand, detail_answers: overallDetails
+            total_questions: overallTotal, band_score: overallBand, detail_answers: overallDetails
         });
     }
     else {
@@ -385,10 +398,13 @@ export const submitAttempt = async (attemptId, dto, userId) => {
         const skipped = skill === 'reading' ? readingSkipped : listeningSkipped;
         const details = skill === 'reading' ? readingDetails : listeningDetails;
         const band = getBandScore(skill, correct);
+        
+        const total = details.reduce((sum, d) => sum + (d.maxPoints || 1), 0);
+        
         resultsToInsert.push({
             attempt_id: attemptId, user_id: userId, exam_id: attempt.exam_id, skill,
             correct_count: correct, wrong_count: wrong, skipped_count: skipped,
-            total_questions: details.length, band_score: band, detail_answers: details
+            total_questions: total, band_score: band, detail_answers: details
         });
     }
     const { data: inserted, error: insertResultsError } = await supabase.from('exam_results').insert(resultsToInsert).select();
