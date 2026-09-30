@@ -45,3 +45,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# AI Assistants & Agent configuration
+.agents/
+.aider-desk/
+skills-lock.json
+
+# Documentation / drafts
+md/
