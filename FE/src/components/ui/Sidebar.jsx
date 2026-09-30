@@ -10,6 +10,7 @@ export default function Sidebar({ username = 'Student', targetBand = '--' }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const refreshToken = useSelector(state => state.auth.refreshToken);
+  const user = useSelector(state => state.auth.user);
 
   const handleLogout = async () => {
     try {
@@ -62,9 +63,13 @@ export default function Sidebar({ username = 'Student', targetBand = '--' }) {
           <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 rounded-md text-sm">Log out</button>
         </nav>
         <div className="flex items-center px-4 pb-2">
-          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 font-bold text-sm shrink-0">
-            {username.substring(0, 2).toUpperCase()}
-          </div>
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-900 font-bold text-sm shrink-0">
+              {username.substring(0, 2).toUpperCase()}
+            </div>
+          )}
           <div className="ml-3 overflow-hidden">
             <p className="text-sm font-medium text-gray-900 truncate">{username}</p>
             <p className="text-xs text-gray-500">Target: {targetBand}</p>
