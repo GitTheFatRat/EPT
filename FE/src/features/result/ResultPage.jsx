@@ -150,7 +150,7 @@ export default function ResultPage() {
           <h2 className="text-xl font-bold text-gray-900 mb-6">Detailed Review</h2>
           
           <div className="space-y-6">
-            {detailAnswers?.map((item, idx) => {
+            {(() => { const renderItem = (item, idx) => {
               const isCorrect = item.isCorrect;
               const isPartiallyCorrect = item.isPartiallyCorrect;
               const isSkipped = item.userAnswer === null || item.userAnswer === undefined || item.userAnswer === '' || (typeof item.userAnswer === 'object' && Object.keys(item.userAnswer).length === 0);
@@ -322,7 +322,7 @@ export default function ResultPage() {
                   </div>
                 </div>
               );
-            })}
+            }; if (skill === "overall") { return (<>{detailAnswers?.filter(a=>a.skill==="reading").length > 0 && <div className="mb-10"><h3 className="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-200">Reading Section</h3><div className="space-y-6">{detailAnswers.filter(a=>a.skill==="reading").map((item, idx) => renderItem(item, idx))}</div></div>} {detailAnswers?.filter(a=>a.skill==="listening").length > 0 && <div><h3 className="text-2xl font-bold text-gray-900 mb-6 pb-3 border-b-2 border-gray-200">Listening Section</h3><div className="space-y-6">{detailAnswers.filter(a=>a.skill==="listening").map((item, idx) => renderItem(item, idx))}</div></div>}</>); } return detailAnswers?.map((item, idx) => renderItem(item, idx)); })()}
           </div>
         </div>
       </div>

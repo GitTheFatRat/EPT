@@ -342,6 +342,7 @@ export const submitAttempt = async (attemptId, dto, userId) => {
         const detail = {
             questionId: q.id,
             questionNumber: q.question_number,
+            skill: skill,
             userAnswer: isSkipped ? null : userAnswer,
             correctAnswer: q.content.correct_answer || q.content.correct_answers || q.content.items || q.content.blanks || q.content.labels,
             isCorrect: score.isCorrect,
@@ -359,12 +360,12 @@ export const submitAttempt = async (attemptId, dto, userId) => {
     
     // Recalculate totals directly from details to guarantee 100% consistency
     readingCorrect = readingDetails.reduce((sum, d) => sum + (d.pointsAwarded || 0), 0);
-    readingWrong = readingDetails.filter(d => !d.isCorrect && !d.isPartiallyCorrect && d.userAnswer !== null).length;
-    readingSkipped = readingDetails.filter(d => d.userAnswer === null).length;
+    readingSkipped = readingDetails.reduce((sum, d) => sum + (d.userAnswer === null ? d.maxPoints : 0), 0);
+    readingWrong = readingDetails.reduce((sum, d) => sum + (d.maxPoints - (d.pointsAwarded || 0) - (d.userAnswer === null ? d.maxPoints : 0)), 0);
     
     listeningCorrect = listeningDetails.reduce((sum, d) => sum + (d.pointsAwarded || 0), 0);
-    listeningWrong = listeningDetails.filter(d => !d.isCorrect && !d.isPartiallyCorrect && d.userAnswer !== null).length;
-    listeningSkipped = listeningDetails.filter(d => d.userAnswer === null).length;
+    listeningSkipped = listeningDetails.reduce((sum, d) => sum + (d.userAnswer === null ? d.maxPoints : 0), 0);
+    listeningWrong = listeningDetails.reduce((sum, d) => sum + (d.maxPoints - (d.pointsAwarded || 0) - (d.userAnswer === null ? d.maxPoints : 0)), 0);
     const resultsToInsert = [];
     if (attempt.mode === 'full_test') {
         const readingBand = getBandScore('reading', readingCorrect);
