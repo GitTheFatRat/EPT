@@ -348,6 +348,15 @@ export const submitAttempt = async (attemptId, dto, userId) => {
             listeningDetails.push(detail);
         overallDetails.push(detail);
     }
+    
+    // Recalculate totals directly from details to guarantee 100% consistency
+    readingCorrect = readingDetails.reduce((sum, d) => sum + (d.pointsAwarded || 0), 0);
+    readingWrong = readingDetails.filter(d => !d.isCorrect && !d.isPartiallyCorrect && d.userAnswer !== null).length;
+    readingSkipped = readingDetails.filter(d => d.userAnswer === null).length;
+    
+    listeningCorrect = listeningDetails.reduce((sum, d) => sum + (d.pointsAwarded || 0), 0);
+    listeningWrong = listeningDetails.filter(d => !d.isCorrect && !d.isPartiallyCorrect && d.userAnswer !== null).length;
+    listeningSkipped = listeningDetails.filter(d => d.userAnswer === null).length;
     const resultsToInsert = [];
     if (attempt.mode === 'full_test') {
         const readingBand = getBandScore('reading', readingCorrect);
