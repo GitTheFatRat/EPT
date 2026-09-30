@@ -193,6 +193,7 @@ export default function DashboardPage() {
             <div className="bg-[#111827] text-white p-6 rounded-xl shadow-sm relative flex flex-col">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">OVERALL BAND</p>
               <div className="text-5xl font-bold mb-1">{overallBand}</div>
+              <p className="text-[10px] text-gray-500 mb-1">Based on Reading and Listening only</p>
               <p className="text-xs text-gray-400 mb-6">Target: {targetBand}</p>
               <div className="mt-auto">
                 <div className="flex justify-between text-xs text-gray-400 mb-1">

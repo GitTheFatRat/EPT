@@ -8,7 +8,8 @@ import {
   setActiveQuestion, 
   submitAttempt, 
   advanceSegment,
-  setAudioHasPlayed
+  setAudioHasPlayed,
+  resetAttempt
 } from './attemptSlice';
 import axiosClient from '../../lib/axiosClient';
 import QuestionRenderer from './components/QuestionRenderer';
@@ -38,6 +39,7 @@ export default function AttemptPage() {
 
   // Hydrate on mount
   useEffect(() => {
+    dispatch(resetAttempt());
     const fetchAttempt = async () => {
       try {
         const res = await axiosClient.get(`/attempts/${id}`);
@@ -56,7 +58,10 @@ export default function AttemptPage() {
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      dispatch(resetAttempt());
+    };
   }, [id, dispatch, navigate]);
 
   // Timer
@@ -195,21 +200,45 @@ export default function AttemptPage() {
   const passages = React.useMemo(() => {
     if (mode === 'full_test') return rawPassages;
     let currentLocalNumber = 1;
-    return rawPassages.map(p => ({
-      ...p,
-      questions: (p.questions || []).map(q => {
-        const count = getSubQuestionCount(q);
-        const localStart = currentLocalNumber;
-        const localEnd = currentLocalNumber + count - 1;
-        const rewritten = {
-          ...q,
-          questionNumber: currentLocalNumber,
-          groupInstruction: renumberGroupInstruction(q.groupInstruction, localStart, localEnd),
-        };
-        currentLocalNumber += count;
-        return rewritten;
-      })
-    }));
+    return rawPassages.map(p => {
+      const questions = p.questions || [];
+      const rewrittenQuestions = [];
+      
+      for (let i = 0; i < questions.length; i++) {
+         const q = questions[i];
+         const count = getSubQuestionCount(q);
+         const localStart = currentLocalNumber;
+         const localEnd = currentLocalNumber + count - 1;
+         
+         let finalGroupInstruction = q.groupInstruction;
+         
+         if (q.groupInstruction) {
+             const rangeMatch = q.groupInstruction.match(/Questions\s+(\d+)\s*[-–]\s*(\d+)/i) || q.groupInstruction.match(/Questions\s+(\d+)\s+and\s+(\d+)/i);
+             if (rangeMatch) {
+                 const origStart = parseInt(rangeMatch[1], 10);
+                 const origEnd = parseInt(rangeMatch[2], 10);
+                 const origSize = origEnd - origStart + 1;
+                 const expectedLocalEnd = localStart + origSize - 1;
+                 finalGroupInstruction = renumberGroupInstruction(q.groupInstruction, localStart, expectedLocalEnd);
+             } else {
+                 finalGroupInstruction = renumberGroupInstruction(q.groupInstruction, localStart, localEnd);
+             }
+         }
+         
+         rewrittenQuestions.push({
+           ...q,
+           questionNumber: currentLocalNumber,
+           groupInstruction: finalGroupInstruction
+         });
+         
+         currentLocalNumber += count;
+      }
+      
+      return {
+        ...p,
+        questions: rewrittenQuestions
+      };
+    });
   }, [rawPassages, mode]);
 
   if (loadingData) {

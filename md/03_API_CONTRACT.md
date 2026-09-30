@@ -366,3 +366,37 @@ Query params: `?page=1&limit=20`
 - Valid token but wrong role for an admin route → `403` with `code: "FORBIDDEN"`.
 - Expired access token → `401` with `code: "TOKEN_EXPIRED"` (frontend axios interceptor should catch this specific code and attempt `/api/auth/refresh` once before failing).
 
+
+---
+
+## 7. Leaderboard
+
+### 7.1. GET /api/leaderboard
+
+- **Mô tả:** Lấy danh sách leaderboard của hệ thống dựa trên kết quả thi Full Mock Test (skill = 'overall'). Sắp xếp theo điểm trung bình (giảm dần) và tổng số bài test (giảm dần). Giới hạn top 50.
+- **Quyền:** Authenticated User
+- **Request Body:** Không có.
+- **Response (200):**
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "userId": "uuid",
+      "rank": 1,
+      "displayName": "Full Name",
+      "avatarUrl": "https://...",
+      "averageBand": 7.5,
+      "totalTests": 12
+    },
+    {
+      "userId": "uuid",
+      "rank": 2,
+      "displayName": "Username",
+      "avatarUrl": null,
+      "averageBand": 7.0,
+      "totalTests": 5
+    }
+  ]
+}
+```

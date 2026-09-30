@@ -3,6 +3,7 @@ import MultipleChoice from './questionTypes/MultipleChoice';
 import TrueFalseNotGiven from './questionTypes/TrueFalseNotGiven';
 import SentenceCompletion from './questionTypes/SentenceCompletion';
 import MatchingType from './questionTypes/MatchingType';
+import DiagramLabelCompletion from './questionTypes/DiagramLabelCompletion';
 
 const typeComponentMap = {
   multiple_choice: MultipleChoice,
@@ -17,6 +18,7 @@ const typeComponentMap = {
   matching_information: MatchingType,
   matching_headings: MatchingType,
   matching_features: MatchingType,
+  diagram_label_completion: DiagramLabelCompletion,
 };
 
 export default function QuestionRenderer({ question, value, onChange }) {

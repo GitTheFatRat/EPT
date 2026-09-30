@@ -119,6 +119,7 @@ export default function ResultPage() {
                 <div className="text-right">
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Band Score</p>
                   <div className="text-4xl font-black text-[#111827]">{bandScore ?? '--'}</div>
+                  <p className="text-xs text-gray-400 mt-1">Based on Reading and Listening only</p>
                 </div>
               )}
             </div>

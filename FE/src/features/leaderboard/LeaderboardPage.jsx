@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axiosClient from '../../lib/axiosClient';
 import Sidebar from '../../components/ui/Sidebar';
-import { mockLeaderboardData } from './mockLeaderboardData';
 
 export default function LeaderboardPage() {
   const navigate = useNavigate();
@@ -11,6 +10,7 @@ export default function LeaderboardPage() {
   
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [leaderboardData, setLeaderboardData] = useState([]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -18,20 +18,27 @@ export default function LeaderboardPage() {
       return;
     }
 
-    const fetchMe = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         const headers = { Authorization: `Bearer ${accessToken}` };
-        const res = await axiosClient.get('/auth/me', { headers });
-        setUser(res.data.data);
+        
+        // Fetch user info and leaderboard in parallel
+        const [meRes, leaderRes] = await Promise.all([
+          axiosClient.get('/auth/me', { headers }),
+          axiosClient.get('/leaderboard', { headers })
+        ]);
+        
+        setUser(meRes.data.data);
+        setLeaderboardData(leaderRes.data.data || []);
       } catch (err) {
-        console.error('Failed to load user', err);
+        console.error('Failed to load leaderboard data', err);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchMe();
+    fetchData();
   }, [accessToken, navigate]);
 
   const username = user?.fullName || user?.username || 'Student';
@@ -49,6 +56,11 @@ export default function LeaderboardPage() {
     return 'text-gray-300 font-medium';
   };
 
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+  };
+
   return (
     <div className="flex min-h-screen font-sans bg-gray-50">
       <Sidebar username={username} targetBand={targetBand} />
@@ -60,6 +72,11 @@ export default function LeaderboardPage() {
           <p className="text-gray-500 text-sm mb-8">Ranked by average band score.</p>
           
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {leaderboardData.length === 0 ? (
+               <div className="p-8 text-center text-gray-500">
+                 No one has completed a Mock Test yet. Be the first!
+               </div>
+            ) : (
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="text-[10px] text-gray-400 uppercase tracking-wider border-b border-gray-100 bg-white">
@@ -70,11 +87,11 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {mockLeaderboardData.map((item) => {
-                  const isCurrentUser = item.isCurrentUser;
+                {leaderboardData.map((item) => {
+                  const isCurrentUser = user && item.userId === user.id;
                   
                   return (
-                    <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                    <tr key={item.userId} className="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
                       <td className="py-4 pl-6">
                         <span className={`text-sm ${getRankColor(item.rank, isCurrentUser)}`}>
                           {item.rank}
@@ -82,26 +99,30 @@ export default function LeaderboardPage() {
                       </td>
                       <td className="py-4 px-4">
                         <div className="flex items-center">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mr-4 ${isCurrentUser ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                            {item.initials}
-                          </div>
+                          {item.avatarUrl ? (
+                            <img src={item.avatarUrl} alt={item.displayName} className="w-10 h-10 rounded-full object-cover shrink-0 mr-4" />
+                          ) : (
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 mr-4 ${isCurrentUser ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                              {getInitials(item.displayName)}
+                            </div>
+                          )}
                           <div className="overflow-hidden">
-                            <p className={`text-sm ${isCurrentUser ? 'font-bold text-gray-900' : 'font-medium text-gray-800'}`}>{item.name}</p>
-                            <p className="text-[11px] text-gray-400">{item.location}</p>
+                            <p className={`text-sm ${isCurrentUser ? 'font-bold text-gray-900' : 'font-medium text-gray-800'}`}>{item.displayName}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-4 px-4 text-center">
-                        <span className={`font-bold ${isCurrentUser ? 'text-gray-900' : 'text-gray-800'}`}>{item.band}</span>
+                        <span className={`font-bold ${isCurrentUser ? 'text-gray-900' : 'text-gray-800'}`}>{item.averageBand.toFixed(1)}</span>
                       </td>
                       <td className="py-4 pr-6 text-right">
-                        <span className="text-gray-500 text-sm">{item.tests} tests</span>
+                        <span className="text-gray-500 text-sm">{item.totalTests} tests</span>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            )}
           </div>
         </div>
       </div>
