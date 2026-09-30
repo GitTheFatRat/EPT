@@ -7,7 +7,7 @@ import React from 'react';
  *   matching_features:    { items: [{statement, correct_answer}], options: [{key, text}], prompt }
  *   matching_information: { items: [{statement, correct_answer}], options: [{key, text}], prompt }
  *
- * User answer stored as object: { "itemIndex": "selectedKey", ... }  e.g. { "0": "A", "1": "C" }
+ * User answer stored as object using the correct backend key (paragraph, statement, or id)
  */
 export default function MatchingType({ question, value, onChange }) {
   const { content, type } = question;
@@ -18,8 +18,8 @@ export default function MatchingType({ question, value, onChange }) {
 
   const currentAnswers = typeof value === 'object' && value !== null ? value : {};
 
-  const handleSelect = (itemIndex, selectedKey) => {
-    const updated = { ...currentAnswers, [String(itemIndex)]: selectedKey };
+  const handleSelect = (itemKey, selectedKey) => {
+    const updated = { ...currentAnswers, [String(itemKey)]: selectedKey };
     onChange(updated);
   };
 
@@ -47,10 +47,11 @@ export default function MatchingType({ question, value, onChange }) {
       {/* Items to match */}
       <div className="space-y-4">
         {items.map((item, idx) => {
+          const itemKey = item.paragraph || item.statement || item.id || String(idx);
           const label = isHeadings
             ? `Paragraph ${item.paragraph}`
             : item.statement;
-          const selectedValue = currentAnswers[String(idx)] || '';
+          const selectedValue = currentAnswers[String(itemKey)] || '';
 
           return (
             <div key={idx} className="flex items-start gap-3">
@@ -59,7 +60,7 @@ export default function MatchingType({ question, value, onChange }) {
               </div>
               <select
                 value={selectedValue}
-                onChange={(e) => handleSelect(idx, e.target.value)}
+                onChange={(e) => handleSelect(itemKey, e.target.value)}
                 className="w-20 shrink-0 px-2 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">--</option>
